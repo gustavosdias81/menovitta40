@@ -1,5 +1,16 @@
 import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
+
+interface MenuItem {
+  icon: React.ReactNode
+  label: string
+  desc: string
+  action: () => void
+  color: string
+  badge?: string
+  external?: boolean
+}
+interface MenuSection { section: string; items: MenuItem[] }
 import { useNavigate } from 'react-router-dom'
 import {
   LogOut, MessageCircle, HelpCircle, Shield,
@@ -26,17 +37,6 @@ export default function Settings() {
     `Olá! Sou aluna do Menovitta 4.0. Preciso de ajuda.\n\nNome: ${profile?.nome}\nEmail: ${profile?.email}`
   )
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
-
-  type MenuItem = {
-    icon: React.ReactNode
-    label: string
-    desc: string
-    action: () => void
-    color: string
-    badge?: string
-    external?: boolean
-  }
-  type MenuSection = { section: string; items: MenuItem[] }
 
   const menuItems: MenuSection[] = [
     {
