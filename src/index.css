@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans text-gray-800 bg-offwhite antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Esconde scrollbar mas mantém funcionalidade */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply text-white font-semibold py-3.5 px-6 rounded-2xl
+           transition-all duration-200
+           shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #B76E79 0%, #c47d87 100%);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #a55d67 0%, #B76E79 100%);
+  }
+
+  .btn-secondary {
+    @apply bg-white text-rosa-500 font-semibold py-3.5 px-6 rounded-2xl
+           border-2 border-rosa-500 hover:bg-rosa-50 transition-all duration-200;
+  }
+
+  .btn-gold {
+    @apply text-white font-semibold py-3.5 px-6 rounded-2xl
+           transition-all duration-200 shadow-md hover:shadow-lg;
+    background: linear-gradient(135deg, #D4AF37 0%, #e0c050 100%);
+  }
+  .btn-gold:hover {
+    background: linear-gradient(135deg, #c49b2a 0%, #D4AF37 100%);
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-5;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white
+           focus:outline-none focus:ring-2 focus:border-rosa-400
+           transition-all duration-200 text-gray-700 placeholder:text-gray-400;
+    --tw-ring-color: rgb(183 110 121 / 0.2);
+  }
+
+  .label-field {
+    @apply block text-sm font-medium text-gray-600 mb-1.5;
+  }
+
+  .page-container {
+    @apply min-h-screen bg-offwhite pb-24 px-4 pt-6 max-w-lg mx-auto;
+  }
+
+  .page-title {
+    @apply font-serif text-2xl font-bold text-gray-800 mb-1;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-gray-500 mb-6;
+  }
+
+  .badge-fase {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-pre {
+    @apply badge-fase bg-amber-100 text-amber-700;
+  }
+
+  .badge-meno {
+    @apply badge-fase bg-rosa-100 text-rosa-700;
+  }
+
+  .badge-pos {
+    @apply badge-fase bg-purple-100 text-purple-700;
+  }
+
+  .macro-card {
+    @apply flex flex-col items-center justify-center p-3 rounded-2xl bg-white shadow-sm;
+  }
+
+  .bottom-nav-item {
+    @apply flex flex-col items-center justify-center gap-0.5 text-xs transition-colors duration-200;
+  }
+
+  .bottom-nav-active {
+    @apply text-rosa-500;
+  }
+
+  .bottom-nav-inactive {
+    @apply text-gray-400;
+  }
+}
