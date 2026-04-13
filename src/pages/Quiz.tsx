@@ -312,7 +312,8 @@ export default function Quiz() {
                 <input
                   type="number" step="0.1" value={peso}
                   onChange={e => { setPeso(Number(e.target.value)); setPesoAlterado(true) }}
-                  className="input-field text-center"
+                  onFocus={e => e.target.select()}
+                  className="input-field text-center text-lg"
                 />
               </div>
               <div>
@@ -322,7 +323,8 @@ export default function Quiz() {
                 <input
                   type="number" step="0.01" value={altura}
                   onChange={e => { setAltura(Number(e.target.value)); setAlturaAlterada(true) }}
-                  className="input-field text-center"
+                  onFocus={e => e.target.select()}
+                  className="input-field text-center text-lg"
                 />
               </div>
             </div>
