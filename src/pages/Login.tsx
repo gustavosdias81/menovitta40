@@ -36,38 +36,34 @@ export default function Login() {
     <div className="min-h-screen bg-offwhite flex flex-col max-w-md mx-auto">
 
       {/* Topo com gradiente e logo */}
-      <div className="relative overflow-hidden px-6 pt-14 pb-20"
+      <div className="relative overflow-hidden px-6 pt-10 pb-14"
         style={{ background: 'linear-gradient(145deg, #B76E79 0%, #9d5a64 60%, #8a4d56 100%)' }}>
 
         {/* Ornamentos */}
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10"
+        <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10"
           style={{ background: '#D4AF37', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-10"
+        <div className="absolute bottom-0 left-0 w-28 h-28 rounded-full opacity-10"
           style={{ background: '#D4AF37', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full opacity-5"
-          style={{ background: 'white', transform: 'translate(-50%, -50%)' }} />
 
         <div className="relative z-10 text-center">
-          {/* Logo */}
-          <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center">
-            <img src="/logo.png" alt="Menovitta 4.0" className="object-contain drop-shadow-xl" style={{ width: '112px', height: '112px' }} />
-          </div>
+          {/* Logo sem fundo */}
+          <img src="/logo.png" alt="Menovitta 4.0" className="w-20 h-20 object-contain drop-shadow-xl mx-auto mb-3" />
 
           {/* Nome */}
-          <h1 className="font-serif text-4xl font-bold text-white tracking-wide drop-shadow-sm">Menovitta</h1>
+          <h1 className="font-serif text-3xl font-bold text-white tracking-wide drop-shadow-sm">Menovitta</h1>
           <div className="flex items-center justify-center gap-2 mt-1">
-            <div className="h-px w-8 opacity-50" style={{ background: '#D4AF37' }} />
-            <span className="text-sm tracking-widest font-medium" style={{ color: '#D4AF37' }}>4.0</span>
-            <div className="h-px w-8 opacity-50" style={{ background: '#D4AF37' }} />
+            <div className="h-px w-6 opacity-50" style={{ background: '#D4AF37' }} />
+            <span className="text-xs tracking-widest font-medium" style={{ color: '#D4AF37' }}>4.0</span>
+            <div className="h-px w-6 opacity-50" style={{ background: '#D4AF37' }} />
           </div>
-          <p className="text-white/80 text-sm mt-3 tracking-wide">
+          <p className="text-white/80 text-xs mt-2 tracking-wide">
             Saúde e bem-estar para mulheres 40+
           </p>
         </div>
       </div>
 
       {/* Card de login */}
-      <div className="flex-1 px-5 -mt-10">
+      <div className="flex-1 px-5 -mt-8">
         <div className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100">
 
           {/* Toggle */}
