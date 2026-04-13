@@ -544,7 +544,7 @@ export default function EditUser() {
                 <div className="card">
                   <h2 className="font-semibold text-gray-800 text-sm mb-3">Histórico Familiar</h2>
                   <div className="flex flex-wrap gap-1.5">
-                    {anamnese.historico_familiar.map((h, i) => (
+                    {anamnese.historico_familiar.map((h: string, i: number) => (
                       <span key={i} className="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-xs">{h}</span>
                     ))}
                   </div>

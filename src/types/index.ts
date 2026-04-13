@@ -28,10 +28,12 @@ export interface AnamneseResponse {
   ultima_menstruacao: string
   ciclo_regular: boolean
   sintomas: string[]
+  intensidade_sintomas?: string
   medicamentos: string[]
   atividade_fisica: string
   restricoes_alimentares: string[]
   horas_sono: number
+  qualidade_sono?: string
   nivel_estresse: string
   objetivo: Objetivo
   peso_atual: number
@@ -39,6 +41,8 @@ export interface AnamneseResponse {
   circunferencia_abdominal?: number
   uso_trh: boolean
   doencas_previas: string[]
+  historico_familiar?: string[]
+  frequencia_ciclo?: string
   fase_classificada: FaseMenopausa
   created_at: string
 }

@@ -1,3 +1,4 @@
+import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -26,7 +27,18 @@ export default function Settings() {
   )
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
-  const menuItems = [
+  type MenuItem = {
+    icon: React.ReactNode
+    label: string
+    desc: string
+    action: () => void
+    color: string
+    badge?: string
+    external?: boolean
+  }
+  type MenuSection = { section: string; items: MenuItem[] }
+
+  const menuItems: MenuSection[] = [
     {
       section: 'Conta',
       items: [
