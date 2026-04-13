@@ -197,7 +197,10 @@ export default function Quiz() {
     localStorage.setItem(`quiz_done_${user.id}`, '1')
     setLoading(false)
     setStep(STEPS.length - 1)
+
+    // Atualiza perfil no contexto e navega automaticamente após 3s
     refreshProfile()
+    setTimeout(() => navigate('/saude-info'), 3000)
   }
 
   const nextStep = () => {
@@ -567,18 +570,18 @@ export default function Quiz() {
       case 'resultado':
         return (
           <div className="text-center py-4">
-            <div className="w-20 h-20 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-green-600" strokeWidth={3} />
+            <div className="w-24 h-24 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+              <Check className="w-12 h-12 text-green-600" strokeWidth={3} />
             </div>
-            <h2 className="font-serif text-2xl font-bold text-gray-800 mb-2">Perfil Criado!</h2>
-            <p className="text-gray-500 text-sm mb-5">Você foi classificada como:</p>
+            <h2 className="font-serif text-2xl font-bold text-gray-800 mb-2">🎉 Perfil Criado!</h2>
+            <p className="text-gray-500 text-sm mb-1">Você foi classificada como:</p>
+            <div className="flex justify-center mb-5">
+              <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold ${faseBadgeClass(faseClassificada)}`}>
+                {faseLabel(faseClassificada)}
+              </span>
+            </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-5 text-left">
-              <div className="flex justify-center mb-4">
-                <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold ${faseBadgeClass(faseClassificada)}`}>
-                  {faseLabel(faseClassificada)}
-                </span>
-              </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 {[
                   { label: 'Idade', valor: `${idade} anos` },
@@ -593,6 +596,10 @@ export default function Quiz() {
                 ))}
               </div>
             </div>
+
+            <p className="text-xs text-gray-400 mb-4 animate-pulse">
+              Preparando seu plano personalizado...
+            </p>
 
             <button
               onClick={() => navigate('/saude-info')}

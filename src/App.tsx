@@ -42,9 +42,10 @@ function AppRoutes() {
       } />
 
       {/* Quiz (sem layout — tela cheia) */}
+      {/* Se quiz já foi feito, redireciona direto para o plano */}
       <Route path="/quiz" element={
         <ProtectedRoute>
-          <Quiz />
+          {quizCompleto ? <Navigate to="/plano" replace /> : <Quiz />}
         </ProtectedRoute>
       } />
 

@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, session, profile, loading,
       isAdmin: profile?.is_admin ?? false,
-      quizCompleto: (profile?.quiz_completo ?? false) || localStorage.getItem(`quiz_done_${user?.id}`) === '1',
+      quizCompleto: profile?.quiz_completo === true || localStorage.getItem(`quiz_done_${user?.id}`) === '1',
       signIn, signUp, signOut, refreshProfile,
     }}>
       {children}

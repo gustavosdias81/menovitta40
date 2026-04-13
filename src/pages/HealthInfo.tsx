@@ -182,10 +182,10 @@ export default function HealthInfo() {
             Seu plano personalizado está preparado com base na sua fase e objetivos.
           </p>
           <button
-            onClick={() => navigate('/perfil')}
+            onClick={() => navigate('/plano')}
             className="btn-primary w-full flex items-center justify-center gap-2"
           >
-            Ir para Meu Perfil <ChevronRight size={18} />
+            Ver Meu Plano de Ação <ChevronRight size={18} />
           </button>
         </div>
       </div>
