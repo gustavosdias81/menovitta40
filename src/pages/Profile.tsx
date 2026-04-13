@@ -132,22 +132,50 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Link para Saúde Info */}
-      <button
+      {/* Banner motivacional com imagem */}
+      <div
+        className="relative rounded-2xl overflow-hidden mb-4 cursor-pointer"
         onClick={() => navigate('/saude-info')}
-        className="card w-full flex items-center justify-between mb-4 hover:shadow-md transition-shadow"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-rosa-50 rounded-xl flex items-center justify-center">
-            <Heart size={18} className="text-rosa-500" />
+        <img
+          src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80"
+          alt="Saúde e bem-estar"
+          className="w-full h-28 object-cover object-center"
+        />
+        <div className="absolute inset-0 flex items-center justify-between px-4"
+          style={{ background: 'linear-gradient(90deg, rgba(183,110,121,0.88) 0%, rgba(183,110,121,0.55) 100%)' }}>
+          <div>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Heart size={14} className="text-white/80" />
+              <p className="text-white/80 text-xs font-medium uppercase tracking-wide">Informações da Sua Fase</p>
+            </div>
+            <p className="font-serif text-base font-bold text-white">Dicas personalizadas para você</p>
+            <p className="text-white/80 text-xs mt-0.5">Saúde, treino e bem-estar</p>
           </div>
-          <div className="text-left">
-            <p className="font-semibold text-gray-800 text-sm">Informações da Minha Fase</p>
-            <p className="text-xs text-gray-400">Dicas e orientações personalizadas</p>
-          </div>
+          <ChevronRight size={20} className="text-white flex-shrink-0" />
         </div>
-        <ChevronRight size={18} className="text-gray-300" />
-      </button>
+      </div>
+
+      {/* Link para o Plano */}
+      <div
+        className="relative rounded-2xl overflow-hidden cursor-pointer"
+        onClick={() => navigate('/plano')}
+      >
+        <img
+          src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80"
+          alt="Plano de Ação"
+          className="w-full h-28 object-cover object-top"
+        />
+        <div className="absolute inset-0 flex items-center justify-between px-4"
+          style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.88) 0%, rgba(212,175,55,0.55) 100%)' }}>
+          <div>
+            <p className="text-white/80 text-xs font-medium uppercase tracking-wide mb-0.5">Seu Programa</p>
+            <p className="font-serif text-base font-bold text-white">Plano de Ação Completo</p>
+            <p className="text-white/80 text-xs mt-0.5">Treino • Nutrição • Mentalidade</p>
+          </div>
+          <ChevronRight size={20} className="text-white flex-shrink-0" />
+        </div>
+      </div>
     </div>
   )
 }

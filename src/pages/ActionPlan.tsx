@@ -608,15 +608,21 @@ export default function ActionPlan() {
         {' · '}Programa de 8 semanas
       </p>
 
-      {/* Treino de hoje — destaque */}
+      {/* Treino de hoje — destaque com imagem */}
       {treinoHoje && treinoHoje.foco !== 'Descanso Total' && treinoHoje.foco !== 'Descanso Merecido' && treinoHoje.foco !== 'Descanso' && (
-        <div className="mb-4 rounded-2xl p-4 text-white"
-          style={{ background: 'linear-gradient(135deg, #B76E79 0%, #9d5a64 100%)' }}>
+        <div className="mb-4 rounded-2xl overflow-hidden relative">
+          <img
+            src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=80"
+            alt="Treino de hoje"
+            className="w-full h-36 object-cover object-center"
+          />
+          <div className="absolute inset-0 p-4 flex flex-col justify-end"
+            style={{ background: 'linear-gradient(to top, rgba(183,110,121,0.95) 40%, rgba(183,110,121,0.3) 100%)' }}>
           <div className="flex items-center gap-2 mb-1">
             <Star size={14} className="text-ouro-300" />
             <span className="text-xs font-semibold text-white/80 uppercase tracking-wider">Treino de Hoje — {diaHoje}</span>
           </div>
-          <p className="font-bold text-lg mb-1">{treinoHoje.foco}</p>
+          <p className="font-bold text-lg text-white mb-1">{treinoHoje.foco}</p>
           <div className="flex items-center gap-3 text-sm text-white/80">
             <span>⏱ {treinoHoje.duracao}</span>
             <span className="w-px h-3 bg-white/30" />
@@ -627,6 +633,7 @@ export default function ActionPlan() {
                 <span>❤️ {treinoHoje.cardio.duracao} cardio</span>
               </>
             )}
+          </div>
           </div>
         </div>
       )}
@@ -813,6 +820,19 @@ export default function ActionPlan() {
             </div>
           ) : (
             <>
+              {/* Banner nutrição */}
+              <div className="relative rounded-2xl overflow-hidden h-32 mb-1">
+                <img
+                  src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80"
+                  alt="Nutrição saudável"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex flex-col justify-end p-4"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
+                  <p className="font-serif text-lg font-bold text-white">🥗 Nutrição da Sua Fase</p>
+                  <p className="text-white/80 text-xs">Alimentos que fazem diferença</p>
+                </div>
+              </div>
               <div className="card">
                 <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
                   <Heart size={16} className="text-rosa-500" /> Dicas Essenciais
@@ -862,15 +882,30 @@ export default function ActionPlan() {
               <p className="text-base text-gray-600 leading-relaxed whitespace-pre-wrap">{plano.mentalidade_descricao}</p>
             </div>
           ) : (
-            mentalidade.praticas.map((p, i) => (
-              <div key={i} className="card flex items-start gap-4">
-                <span className="text-3xl">{p.icon}</span>
-                <div>
-                  <p className="font-semibold text-gray-800 text-base mb-1">{p.titulo}</p>
-                  <p className="text-sm text-gray-500 leading-relaxed">{p.desc}</p>
+            <>
+              {/* Banner mentalidade */}
+              <div className="relative rounded-2xl overflow-hidden h-32 mb-1">
+                <img
+                  src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80"
+                  alt="Meditação e bem-estar"
+                  className="w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 flex flex-col justify-end p-4"
+                  style={{ background: 'linear-gradient(to top, rgba(88,28,135,0.7) 0%, transparent 100%)' }}>
+                  <p className="font-serif text-lg font-bold text-white">🧘‍♀️ Mente em Equilíbrio</p>
+                  <p className="text-white/80 text-xs">Práticas para seu bem-estar mental</p>
                 </div>
               </div>
-            ))
+              {mentalidade.praticas.map((p, i) => (
+                <div key={i} className="card flex items-start gap-4">
+                  <span className="text-3xl">{p.icon}</span>
+                  <div>
+                    <p className="font-semibold text-gray-800 text-base mb-1">{p.titulo}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{p.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
       )}

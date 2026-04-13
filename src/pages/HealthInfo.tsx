@@ -1,142 +1,151 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import {
-  Heart, Shield, Flame, Brain, Moon, Dumbbell,
-  Apple, Droplets, ChevronRight, Sparkles
-} from 'lucide-react'
+import { ChevronRight, Sparkles } from 'lucide-react'
 import type { FaseMenopausa } from '../types'
 
+// ── IMAGENS POR FASE (hero) ───────────────────────────────────────────────────
+const HERO_IMGS: Record<FaseMenopausa, string> = {
+  pre_menopausa:
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=80',
+  menopausa:
+    'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80',
+  pos_menopausa:
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80',
+}
+
+// ── CARDS COM IMAGEM POR FASE ─────────────────────────────────────────────────
 interface InfoCard {
-  icon: React.ReactNode
+  emoji: string
   title: string
   content: string
+  img: string
   color: string
 }
 
 const INFO_POR_FASE: Record<FaseMenopausa, { titulo: string; descricao: string; cards: InfoCard[] }> = {
   pre_menopausa: {
     titulo: 'Pré-Menopausa',
-    descricao: 'Você está na fase de transição. Seu corpo está começando a reduzir a produção de estrogênio e progesterona. É o momento ideal para se preparar e minimizar os impactos das mudanças hormonais.',
+    descricao: 'Fase de transição. Hora de se preparar com hábitos que vão definir os próximos anos.',
     cards: [
       {
-        icon: <Flame size={20} />,
-        title: 'Metabolismo em Transição',
-        content: 'Nesta fase, o metabolismo começa a desacelerar gradualmente. O corpo passa a armazenar mais gordura na região abdominal devido à queda do estrogênio. A boa notícia: com treino de força e alimentação adequada, é possível reverter esse processo e até acelerar o metabolismo.',
-        color: 'bg-amber-50 text-amber-600',
+        emoji: '🔥', title: 'Metabolismo em Transição',
+        content: 'O corpo começa a armazenar mais gordura abdominal. Com treino de força e alimentação certa, é possível reverter esse processo.',
+        img: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=200&q=80',
+        color: 'from-amber-50 to-white border-amber-100',
       },
       {
-        icon: <Dumbbell size={20} />,
-        title: 'Treino de Força é Prioridade',
-        content: 'A perda muscular (sarcopenia) pode começar anos antes da menopausa. Treinos de resistência com pesos 2-4x por semana são essenciais para manter massa magra, fortalecer ossos e proteger articulações. Exercícios compostos como agachamento, levantamento terra e supino são os mais eficientes.',
-        color: 'bg-rosa-50 text-rosa-600',
+        emoji: '🏋️‍♀️', title: 'Treino de Força é Prioridade',
+        content: 'Sarcopenia pode começar anos antes da menopausa. 2-4x por semana de resistência preserva massa magra, ossos e articulações.',
+        img: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=200&q=80',
+        color: 'from-rosa-50 to-white border-rosa-100',
       },
       {
-        icon: <Apple size={20} />,
-        title: 'Nutrição Estratégica',
-        content: 'Aumente a ingestão de proteínas (1,2-1,5g por kg de peso), cálcio (1.000-1.200mg/dia), vitamina D e magnésio. Reduza açúcares refinados e alimentos ultraprocessados. Inclua alimentos ricos em fitoestrógenos como soja, linhaça e grão-de-bico.',
-        color: 'bg-green-50 text-green-600',
+        emoji: '🥗', title: 'Nutrição Estratégica',
+        content: 'Proteínas (1,2–1,5g/kg), cálcio, vitamina D e fitoestrógenos (soja, linhaça). Reduza açúcares refinados.',
+        img: 'https://images.unsplash.com/photo-1490818387583-1baba5e638af?auto=format&fit=crop&w=200&q=80',
+        color: 'from-green-50 to-white border-green-100',
       },
       {
-        icon: <Moon size={20} />,
-        title: 'Sono e Recuperação',
-        content: 'Alterações no sono podem começar nesta fase. Estabeleça uma rotina de sono consistente, evite telas 1h antes de dormir e considere suplementação de magnésio e melatonina (com orientação médica). O sono é fundamental para a regulação hormonal.',
-        color: 'bg-indigo-50 text-indigo-600',
+        emoji: '🌙', title: 'Sono e Recuperação',
+        content: 'Sono consistente e telas desligadas 1h antes de dormir. Magnésio e melatonina (com orientação) ajudam na regulação hormonal.',
+        img: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=200&q=80',
+        color: 'from-indigo-50 to-white border-indigo-100',
       },
       {
-        icon: <Brain size={20} />,
-        title: 'Saúde Mental',
-        content: 'Oscilações de humor, ansiedade e irritabilidade são comuns na pré-menopausa. Práticas como meditação, yoga e exercício aeróbico de intensidade moderada ajudam a regular neurotransmissores e melhorar o bem-estar emocional.',
-        color: 'bg-purple-50 text-purple-600',
+        emoji: '🧘‍♀️', title: 'Saúde Mental',
+        content: 'Oscilações de humor e ansiedade são comuns. Meditação, yoga e aeróbico moderado regulam neurotransmissores.',
+        img: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=200&q=80',
+        color: 'from-purple-50 to-white border-purple-100',
       },
       {
-        icon: <Shield size={20} />,
-        title: 'Exames Preventivos',
-        content: 'Faça check-up anual com seu ginecologista. Solicite exames de dosagem hormonal (FSH, estradiol, progesterona), densitometria óssea, perfil lipídico e glicemia. Discuta com seu médico sobre a possibilidade de Terapia de Reposição Hormonal (TRH).',
-        color: 'bg-blue-50 text-blue-600',
+        emoji: '🩺', title: 'Exames Preventivos',
+        content: 'Check-up anual: FSH, estradiol, densitometria óssea, perfil lipídico. Converse com seu médico sobre TRH.',
+        img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=200&q=80',
+        color: 'from-blue-50 to-white border-blue-100',
       },
     ],
   },
   menopausa: {
     titulo: 'Menopausa (Perimenopausa)',
-    descricao: 'Você está no período de transição ativa. Os níveis de estrogênio estão caindo significativamente, o que intensifica os sintomas. Este é o momento mais importante para investir em hábitos saudáveis que vão definir sua qualidade de vida nos próximos anos.',
+    descricao: 'Os hormônios estão em queda significativa. Este é o momento mais importante para investir em saúde.',
     cards: [
       {
-        icon: <Flame size={20} />,
-        title: 'Gerenciando os Fogachos',
-        content: 'As ondas de calor afetam até 80% das mulheres. Além da TRH (que é a mais eficaz), estratégias como exercício regular, vestir-se em camadas, evitar álcool e cafeína, e manter o ambiente fresco ajudam. Exercício aeróbico moderado 30-45min reduz a frequência dos fogachos em até 50%.',
-        color: 'bg-orange-50 text-orange-600',
+        emoji: '🌡️', title: 'Gerenciando os Fogachos',
+        content: 'Afetam 80% das mulheres. Exercício aeróbico 30-45min reduz a frequência em até 50%. Vistas em camadas e evite álcool.',
+        img: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=200&q=80',
+        color: 'from-orange-50 to-white border-orange-100',
       },
       {
-        icon: <Dumbbell size={20} />,
-        title: 'Treino Adaptado à Fase',
-        content: 'Combine treino de força (3-4x/semana) com exercício aeróbico moderado (150min/semana). O treino HIIT pode ser excelente, mas evite excessos que aumentem o cortisol. Priorize exercícios de impacto moderado para saúde óssea: caminhada rápida, subir escadas, dança.',
-        color: 'bg-rosa-50 text-rosa-600',
+        emoji: '🏋️‍♀️', title: 'Treino Adaptado à Fase',
+        content: 'Combine força (3-4x/semana) com aeróbico moderado (150min/semana). HIIT é válido, mas evite excessos que aumentem cortisol.',
+        img: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=200&q=80',
+        color: 'from-rosa-50 to-white border-rosa-100',
       },
       {
-        icon: <Heart size={20} />,
-        title: 'Proteção Cardiovascular',
-        content: 'A queda do estrogênio aumenta significativamente o risco cardiovascular. Monitore pressão arterial, colesterol e glicemia. Ômega-3 (2-3g/dia), exercício aeróbico e redução de gordura saturada são fundamentais. O treino aeróbico reduz o risco cardíaco em até 40%.',
-        color: 'bg-red-50 text-red-600',
+        emoji: '❤️', title: 'Proteção Cardiovascular',
+        content: 'A queda do estrogênio aumenta o risco cardíaco. Ômega-3, exercício aeróbico e menos gordura saturada são fundamentais.',
+        img: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=200&q=80',
+        color: 'from-red-50 to-white border-red-100',
       },
       {
-        icon: <Apple size={20} />,
-        title: 'Proteína é Essencial',
-        content: 'Aumente para 1,3-1,6g de proteína por kg de peso. Distribua ao longo do dia (mínimo 25-30g por refeição). Fontes ideais: frango, peixe, ovos, iogurte grego, whey protein. A proteína adequada combate a sarcopenia e mantém a saciedade, ajudando no controle de peso.',
-        color: 'bg-green-50 text-green-600',
+        emoji: '🥩', title: 'Proteína é Essencial',
+        content: '1,3–1,6g/kg de peso por dia. 25–30g por refeição. Frango, peixe, ovos, iogurte grego combatem a sarcopenia.',
+        img: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=200&q=80',
+        color: 'from-green-50 to-white border-green-100',
       },
       {
-        icon: <Droplets size={20} />,
-        title: 'Hidratação e Pele',
-        content: 'A queda do estrogênio afeta a produção de colágeno e a hidratação da pele. Beba pelo menos 2L de água/dia. Colágeno hidrolisado (10g/dia) pode ajudar. Use protetor solar diariamente e invista em hidratação cutânea adequada.',
-        color: 'bg-cyan-50 text-cyan-600',
+        emoji: '💧', title: 'Hidratação e Pele',
+        content: 'Estrogênio em queda afeta colágeno e hidratação. 2L de água/dia + colágeno hidrolisado (10g) + protetor solar.',
+        img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=200&q=80',
+        color: 'from-cyan-50 to-white border-cyan-100',
       },
       {
-        icon: <Brain size={20} />,
-        title: 'Névoa Mental e Cognição',
-        content: 'A dificuldade de concentração e lapsos de memória são comuns e temporários. Exercício aeróbico, sono de qualidade, ômega-3 e atividades cognitivas (leitura, jogos) ajudam. Estudos mostram que o exercício regular melhora a cognição em até 30% nesta fase.',
-        color: 'bg-purple-50 text-purple-600',
+        emoji: '🧠', title: 'Névoa Mental e Cognição',
+        content: 'Lapsos de memória são temporários. Aeróbico, sono e ômega-3 melhoram a cognição em até 30%.',
+        img: 'https://images.unsplash.com/photo-1516302752625-fcc3c50ae61f?auto=format&fit=crop&w=200&q=80',
+        color: 'from-purple-50 to-white border-purple-100',
       },
     ],
   },
   pos_menopausa: {
     titulo: 'Pós-Menopausa',
-    descricao: 'Seus hormônios se estabilizaram em um novo patamar. Muitos sintomas agudos tendem a diminuir. Agora o foco é prevenção: manter ossos fortes, massa muscular, saúde cardiovascular e qualidade de vida a longo prazo.',
+    descricao: 'Hormônios estabilizados. Foco total em longevidade: ossos, músculo, coração e qualidade de vida.',
     cards: [
       {
-        icon: <Shield size={20} />,
-        title: 'Saúde Óssea — Prioridade Máxima',
-        content: 'A perda óssea acelera após a menopausa (até 2-3% por ano nos primeiros 5 anos). Treino de força com carga progressiva, exercícios de impacto (caminhada, dança), cálcio (1.200mg/dia), vitamina D (2.000-4.000 UI/dia) e K2 são fundamentais. Faça densitometria anual.',
-        color: 'bg-blue-50 text-blue-600',
+        emoji: '🦴', title: 'Saúde Óssea — Prioridade Máxima',
+        content: 'Perda óssea pode chegar a 2-3%/ano. Treino de força + cálcio (1.200mg/dia) + Vit D + K2. Faça densitometria anual.',
+        img: 'https://images.unsplash.com/photo-1434682881908-b43d0467b798?auto=format&fit=crop&w=200&q=80',
+        color: 'from-blue-50 to-white border-blue-100',
       },
       {
-        icon: <Dumbbell size={20} />,
-        title: 'Manutenção Muscular',
-        content: 'Após a menopausa, a perda muscular pode chegar a 1-2% ao ano sem exercício. Treino de resistência 3-4x/semana com cargas progressivas é a intervenção mais eficaz. Foque em exercícios multiarticulares. A massa muscular é o maior preditor de longevidade e independência funcional.',
-        color: 'bg-rosa-50 text-rosa-600',
+        emoji: '💪', title: 'Manutenção Muscular',
+        content: 'Sem exercício, perde-se 1–2% de músculo por ano. Força 3-4x/semana com carga progressiva é a maior intervenção de longevidade.',
+        img: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=200&q=80',
+        color: 'from-rosa-50 to-white border-rosa-100',
       },
       {
-        icon: <Heart size={20} />,
-        title: 'Coração sob Cuidado',
-        content: 'O risco cardiovascular iguala ou supera o dos homens após a menopausa. Mantenha atividade aeróbica regular (150-300min/semana), controle pressão e colesterol, mantenha peso saudável. Dieta mediterrânea é a mais recomendada para proteção cardiovascular.',
-        color: 'bg-red-50 text-red-600',
+        emoji: '❤️', title: 'Coração sob Cuidado',
+        content: 'Risco cardiovascular iguala o dos homens após a menopausa. Aeróbico 150–300min/semana + dieta mediterrânea.',
+        img: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=200&q=80',
+        color: 'from-red-50 to-white border-red-100',
       },
       {
-        icon: <Apple size={20} />,
-        title: 'Nutrição Anti-inflamatória',
-        content: 'A inflamação crônica de baixo grau aumenta na pós-menopausa. Priorize: peixes gordos (salmão, sardinha), frutas vermelhas, vegetais coloridos, azeite de oliva, cúrcuma, gengibre. Evite: açúcar refinado, ultraprocessados, excesso de álcool. Proteína: 1,4-1,6g/kg.',
-        color: 'bg-green-50 text-green-600',
+        emoji: '🫐', title: 'Nutrição Anti-inflamatória',
+        content: 'Salmão, frutas vermelhas, azeite, cúrcuma. Evite açúcar e ultraprocessados. Proteína: 1,4–1,6g/kg.',
+        img: 'https://images.unsplash.com/photo-1490818387583-1baba5e638af?auto=format&fit=crop&w=200&q=80',
+        color: 'from-green-50 to-white border-green-100',
       },
       {
-        icon: <Brain size={20} />,
-        title: 'Longevidade Cognitiva',
-        content: 'O exercício físico regular é o fator mais protetor contra declínio cognitivo. Combine treino aeróbico + força + atividades sociais + desafios cognitivos. Sono de qualidade (7-8h) é fundamental. A suplementação com ômega-3 e vitamina D mostra benefícios cognitivos.',
-        color: 'bg-purple-50 text-purple-600',
+        emoji: '🧠', title: 'Longevidade Cognitiva',
+        content: 'Exercício físico é o maior protetor contra declínio cognitivo. Combine aeróbico + força + vida social + sono de qualidade.',
+        img: 'https://images.unsplash.com/photo-1516302752625-fcc3c50ae61f?auto=format&fit=crop&w=200&q=80',
+        color: 'from-purple-50 to-white border-purple-100',
       },
       {
-        icon: <Sparkles size={20} />,
-        title: 'Qualidade de Vida',
-        content: 'A pós-menopausa pode ser uma fase de liberdade e autoconhecimento. Muitas mulheres relatam mais energia e clareza mental após a estabilização hormonal. Invista em atividades prazerosas, conexões sociais e autocuidado. Seu corpo é capaz de coisas incríveis — cuide dele.',
-        color: 'bg-ouro-50 text-ouro-600',
+        emoji: '✨', title: 'Qualidade de Vida',
+        content: 'Muitas mulheres relatam mais energia e clareza após a estabilização hormonal. Invista em hobbies, conexões e autocuidado.',
+        img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=200&q=80',
+        color: 'from-ouro-50 to-white border-ouro-100',
       },
     ],
   },
@@ -147,46 +156,75 @@ export default function HealthInfo() {
   const navigate = useNavigate()
   const fase = (profile?.fase_menopausa || 'menopausa') as FaseMenopausa
   const info = INFO_POR_FASE[fase]
+  const heroImg = HERO_IMGS[fase]
 
   return (
     <div className="min-h-screen bg-offwhite pb-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-rosa-500 to-rosa-700 px-5 pt-10 pb-14 rounded-b-[2.5rem]">
-        <h1 className="font-serif text-2xl font-bold text-white mb-1">{info.titulo}</h1>
-        <p className="text-rosa-100 text-sm leading-relaxed">{info.descricao}</p>
+
+      {/* ── HERO BANNER com imagem ─────────────────────────────── */}
+      <div className="relative h-56 overflow-hidden">
+        <img
+          src={heroImg}
+          alt={info.titulo}
+          className="w-full h-full object-cover object-center"
+        />
+        {/* Gradiente sobre a imagem */}
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(183,110,121,0.85) 100%)' }}
+        />
+        {/* Texto sobre a imagem */}
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-1">Informações da Sua Fase</p>
+          <h1 className="font-serif text-2xl font-bold text-white drop-shadow">{info.titulo}</h1>
+          <p className="text-white/90 text-sm leading-relaxed mt-1">{info.descricao}</p>
+        </div>
       </div>
 
-      {/* Cards */}
-      <div className="px-4 -mt-8 space-y-4">
+      {/* ── CARDS com imagem ──────────────────────────────────────── */}
+      <div className="px-4 mt-4 space-y-3">
         {info.cards.map((card, i) => (
-          <div key={i} className="card">
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${card.color}`}>
-                {card.icon}
+          <div key={i} className={`bg-gradient-to-r ${card.color} rounded-2xl border overflow-hidden shadow-sm`}>
+            <div className="flex items-stretch">
+              {/* Imagem lateral */}
+              <div className="w-24 flex-shrink-0">
+                <img
+                  src={card.img}
+                  alt={card.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800 text-sm mb-1.5">{card.title}</h3>
+              {/* Conteúdo */}
+              <div className="flex-1 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-base">{card.emoji}</span>
+                  <h3 className="font-semibold text-gray-800 text-sm leading-tight">{card.title}</h3>
+                </div>
                 <p className="text-xs text-gray-600 leading-relaxed">{card.content}</p>
               </div>
             </div>
           </div>
         ))}
 
-        {/* CTA */}
-        <div className="card bg-gradient-to-br from-ouro-50 to-white border-ouro-200 text-center">
-          <Sparkles className="w-8 h-8 text-ouro-400 mx-auto mb-2" />
-          <h3 className="font-serif text-lg font-bold text-gray-800 mb-1">
-            Pronta para começar?
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Seu plano personalizado está preparado com base na sua fase e objetivos.
-          </p>
-          <button
-            onClick={() => navigate('/plano')}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-          >
-            Ver Meu Plano de Ação <ChevronRight size={18} />
-          </button>
+        {/* ── CTA FINAL ──────────────────────────────────────────── */}
+        <div className="relative rounded-2xl overflow-hidden mt-2">
+          <img
+            src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80"
+            alt="Comece agora"
+            className="w-full h-36 object-cover object-top"
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, rgba(183,110,121,0.85) 0%, rgba(212,175,55,0.75) 100%)' }}>
+            <Sparkles className="w-6 h-6 text-white mb-2" />
+            <h3 className="font-serif text-lg font-bold text-white mb-1">Pronta para começar?</h3>
+            <p className="text-white/90 text-xs mb-3">Seu plano personalizado está preparado!</p>
+            <button
+              onClick={() => navigate('/plano')}
+              className="bg-white text-rosa-600 font-semibold text-sm px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md"
+            >
+              Ver Meu Plano de Ação <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
