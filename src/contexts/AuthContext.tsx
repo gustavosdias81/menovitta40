@@ -48,13 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Timeout de segurança — garante que nunca trava
+    // Timeout de segurança — garante que nunca trava na tela de carregamento
     const timeout = setTimeout(() => {
       if (mounted) {
         console.warn('Auth timeout — forçando carregamento')
         setLoading(false)
       }
-    }, 4000)
+    }, 2000)
 
     const init = async () => {
       try {

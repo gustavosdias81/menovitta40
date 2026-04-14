@@ -1184,15 +1184,15 @@ export default function ActionPlan() {
                   </div>
 
                   {/* Fases da Trilha */}
-                  {trilhaSelecionada.fases.map((fase, i) => (
-                    <div key={i} className={`card transition-all ${!fase.desbloqueada ? 'opacity-80' : ''}`}>
+                  {trilhaSelecionada.fases.map((ft, i) => (
+                    <div key={i} className={`card transition-all ${!ft.desbloqueada ? 'opacity-80' : ''}`}>
                       <div className="flex items-start gap-3">
                         {/* Ícone / Status */}
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
-                          fase.desbloqueada ? 'bg-rosa-50' : 'bg-gray-50'
+                          ft.desbloqueada ? 'bg-rosa-50' : 'bg-gray-50'
                         }`}>
-                          {fase.desbloqueada
-                            ? <span>{fase.icone}</span>
+                          {ft.desbloqueada
+                            ? <span>{ft.icone}</span>
                             : <Lock size={16} className="text-gray-300" />
                           }
                         </div>
@@ -1200,23 +1200,23 @@ export default function ActionPlan() {
                         <div className="flex-1 min-w-0">
                           {/* Header */}
                           <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <p className="text-[11px] text-gray-400 font-medium">{fase.periodo}</p>
-                            {!fase.desbloqueada && (
+                            <p className="text-[11px] text-gray-400 font-medium">{ft.periodo}</p>
+                            {!ft.desbloqueada && (
                               <span className="text-[10px] bg-ouro-50 text-ouro-600 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
                                 🔓 Assinatura ativa
                               </span>
                             )}
                           </div>
-                          <p className="font-bold text-gray-800 text-sm">{fase.icone} {fase.titulo}</p>
-                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{fase.descricao}</p>
+                          <p className="font-bold text-gray-800 text-sm">{ft.icone} {ft.titulo}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{ft.descricao}</p>
 
-                          {/* Detalhes — apenas fase desbloqueada */}
-                          {fase.desbloqueada && (
+                          {/* Detalhes — apenas ft desbloqueada */}
+                          {ft.desbloqueada && (
                             <div className="mt-3 space-y-2">
                               <div className="bg-rosa-50 rounded-xl p-2.5">
                                 <p className="text-[11px] font-semibold text-rosa-700 mb-1.5">🏋️‍♀️ Foco de Treino</p>
                                 <div className="flex flex-wrap gap-1">
-                                  {fase.foco_treino.map((f, j) => (
+                                  {ft.foco_treino.map((f, j) => (
                                     <span key={j} className="text-[10px] bg-white text-rosa-600 px-2 py-0.5 rounded-full border border-rosa-100">{f}</span>
                                   ))}
                                 </div>
@@ -1224,21 +1224,21 @@ export default function ActionPlan() {
                               <div className="bg-green-50 rounded-xl p-2.5">
                                 <p className="text-[11px] font-semibold text-green-700 mb-1.5">🥗 Foco Nutricional</p>
                                 <div className="flex flex-wrap gap-1">
-                                  {fase.foco_nutricao.map((f, j) => (
+                                  {ft.foco_nutricao.map((f, j) => (
                                     <span key={j} className="text-[10px] bg-white text-green-600 px-2 py-0.5 rounded-full border border-green-100">{f}</span>
                                   ))}
                                 </div>
                               </div>
                               <div className="bg-ouro-50 rounded-xl p-2.5">
                                 <p className="text-[11px] font-semibold text-ouro-700 mb-1">🎯 Resultado Esperado</p>
-                                <p className="text-[11px] text-ouro-600 leading-relaxed">{fase.meta}</p>
+                                <p className="text-[11px] text-ouro-600 leading-relaxed">{ft.meta}</p>
                               </div>
                             </div>
                           )}
 
                           {/* Preview bloqueada */}
-                          {!fase.desbloqueada && (
-                            <p className="text-[11px] text-gray-400 mt-1.5">🎯 {fase.meta}</p>
+                          {!ft.desbloqueada && (
+                            <p className="text-[11px] text-gray-400 mt-1.5">🎯 {ft.meta}</p>
                           )}
                         </div>
                       </div>
