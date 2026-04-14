@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getCommunityPosts, createCommunityPost } from '../lib/supabase'
 import type { CommunityPost } from '../types'
