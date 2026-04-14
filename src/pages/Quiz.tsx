@@ -264,7 +264,7 @@ export default function Quiz() {
         return (
           <div className="text-center py-4">
             <div className="w-24 h-24 mx-auto mb-5 flex items-center justify-center">
-              <img src="/logo.png" alt="Menovitta" className="w-24 h-24 object-contain drop-shadow-lg" />
+              <img src="/Logo.png" alt="Menovitta" className="w-24 h-24 object-contain drop-shadow-lg" />
             </div>
             <h2 className="font-serif text-2xl font-bold text-gray-800 mb-3">
               Olá, seja bem-vinda!
@@ -617,7 +617,7 @@ export default function Quiz() {
       {/* Header com logo */}
       <div className="bg-offwhite border-b border-gray-100 px-4 pt-4 pb-3 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
-          <img src="/logo.png" alt="Menovitta" className="w-9 h-9 object-contain drop-shadow" />
+          <img src="/Logo.png" alt="Menovitta" className="w-9 h-9 object-contain drop-shadow" />
           <div className="flex-1">
             <h1 className="font-serif text-base font-bold text-gray-800">{STEPS[step].title}</h1>
             <p className="text-[11px] text-gray-400">{STEPS[step].subtitle}</p>
