@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
