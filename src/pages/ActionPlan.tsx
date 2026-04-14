@@ -668,6 +668,143 @@ function gerarPrograma(fase: FaseMenopausa): SemanaProgressao[] {
   return base[fase].semanas
 }
 
+// ── TRILHAS DE LONGA DURAÇÃO ──────────────────────────────────────────────────
+type TrilhaAtiva = '8sem' | '90d' | '180d' | '360d'
+
+type FaseTrilhaLonga = {
+  periodo: string
+  titulo: string
+  icone: string
+  descricao: string
+  foco_treino: string[]
+  foco_nutricao: string[]
+  meta: string
+  desbloqueada: boolean
+}
+
+const TRILHAS_LONGAS: Record<Exclude<TrilhaAtiva, '8sem'>, {
+  label: string
+  duracao: string
+  descricao: string
+  imagem: string
+  fases: FaseTrilhaLonga[]
+}> = {
+  '90d': {
+    label: '90 Dias — Transformação Completa',
+    duracao: '3 meses',
+    descricao: 'Do zero ao novo hábito. Corpo e mente transformados em 90 dias de consistência.',
+    imagem: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80',
+    fases: [
+      {
+        periodo: 'Mês 1',
+        titulo: 'Construindo a Base',
+        icone: '🌱',
+        descricao: 'Aprenda os movimentos, ajuste a alimentação e estabeleça a rotina de treino.',
+        foco_treino: ['Força 3×/semana', 'Técnica e postura', 'Cardio leve 2×/semana'],
+        foco_nutricao: ['Proteína 1,2g/kg', 'Hidratação 2L+/dia', 'Redução de ultraprocessados'],
+        meta: 'Dominar os movimentos básicos · -2 a 3kg · Mais energia no dia a dia',
+        desbloqueada: true,
+      },
+      {
+        periodo: 'Mês 2',
+        titulo: 'Intensificando',
+        icone: '🔥',
+        descricao: 'Carga aumentada, novo cardio estratégico e refinamento nutricional.',
+        foco_treino: ['Força 4×/semana', 'Carga +20%', 'HIIT 1×/semana'],
+        foco_nutricao: ['Proteína 1,4g/kg', 'Pré e pós-treino', 'Ciclo de carboidratos'],
+        meta: '-3 a 4kg adicionais · +15% força · Sono regulado',
+        desbloqueada: false,
+      },
+      {
+        periodo: 'Mês 3',
+        titulo: 'Performance e Resultado',
+        icone: '💪',
+        descricao: 'Periodização avançada e consolidação definitiva dos hábitos.',
+        foco_treino: ['Força 4×/semana', 'Periodização ondulatória', 'Aeróbico 150min/semana'],
+        foco_nutricao: ['Nutrição peri-treino', 'Suplementação estratégica', 'Refeed semanal'],
+        meta: 'Corpo transformado · Hábitos consolidados · Nova composição corporal',
+        desbloqueada: false,
+      },
+    ],
+  },
+  '180d': {
+    label: '180 Dias — Nova Você',
+    duracao: '6 meses',
+    descricao: 'Meio ano de evolução progressiva. Resultados visíveis, duráveis e sustentáveis.',
+    imagem: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80',
+    fases: [
+      {
+        periodo: 'Meses 1–3',
+        titulo: 'Fundação e Adaptação',
+        icone: '🌱',
+        descricao: 'Base sólida de técnica, alimentação e consistência nos treinos.',
+        foco_treino: ['Força 3-4×/semana', 'Todos os grupos musculares', 'Cardio progressivo'],
+        foco_nutricao: ['Proteína 1,2-1,4g/kg', 'Déficit calórico moderado', 'Hidratação e fibras'],
+        meta: '-5 a 7kg · Força real percebida · Energia e sono melhorados',
+        desbloqueada: true,
+      },
+      {
+        periodo: 'Meses 4–6',
+        titulo: 'Transformação Profunda',
+        icone: '🚀',
+        descricao: 'Sculpting, força avançada e recomposição corporal completa.',
+        foco_treino: ['Força 4-5×/semana', 'Divisão avançada', 'HIIT 2×/semana'],
+        foco_nutricao: ['Periodização nutricional', 'Proteína 1,6g/kg', 'Suplementação completa'],
+        meta: '-10 a 12kg totais · Massa muscular visível · Hábitos automáticos',
+        desbloqueada: false,
+      },
+    ],
+  },
+  '360d': {
+    label: '360 Dias — Jornada Completa',
+    duracao: '1 ano · 4 trimestres',
+    descricao: 'A transformação mais profunda e duradoura. Quatro trimestres, quatro versões de você.',
+    imagem: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80',
+    fases: [
+      {
+        periodo: 'Trimestre 1 · Meses 1–3',
+        titulo: 'Fundação',
+        icone: '🌱',
+        descricao: 'Estabeleça a base sólida de treino, alimentação e mentalidade.',
+        foco_treino: ['Força 3×/semana', 'Técnica e mobilidade', 'Cardio leve 2×/semana'],
+        foco_nutricao: ['Proteína 1,2g/kg', 'Redução de ultraprocessados', 'Hidratação'],
+        meta: '-3 a 5kg · Domínio técnico · Rotina estabelecida',
+        desbloqueada: true,
+      },
+      {
+        periodo: 'Trimestre 2 · Meses 4–6',
+        titulo: 'Consolidação',
+        icone: '🔥',
+        descricao: 'Aumento de carga, cardio estratégico e refinamento nutricional.',
+        foco_treino: ['Força 4×/semana', 'Carga progressiva', 'HIIT semanal'],
+        foco_nutricao: ['Periodização calórica', 'Pré e pós-treino', 'Micronutrientes'],
+        meta: '-8 a 10kg totais · Força elevada · Composição corporal melhorada',
+        desbloqueada: false,
+      },
+      {
+        periodo: 'Trimestre 3 · Meses 7–9',
+        titulo: 'Performance',
+        icone: '💪',
+        descricao: 'Força avançada, sculpting e longevidade celular ativa.',
+        foco_treino: ['Força 4-5×/semana', 'Periodização avançada', 'Aeróbico 200min+/semana'],
+        foco_nutricao: ['Suplementação estratégica', 'Proteína 1,6g/kg', 'Dieta anti-inflamatória'],
+        meta: '-12 a 15kg totais · Massa muscular visível · Exames laboratoriais melhorados',
+        desbloqueada: false,
+      },
+      {
+        periodo: 'Trimestre 4 · Meses 10–12',
+        titulo: 'Maestria',
+        icone: '🏆',
+        descricao: 'Autonomia total. Você é sua própria treinadora e nutricionista.',
+        foco_treino: ['Força 5×/semana', 'Especialização por grupo', 'Esporte ou atividade de prazer'],
+        foco_nutricao: ['Nutrição intuitiva', 'Flexibilidade alimentar', 'Manutenção inteligente'],
+        meta: 'Corpo e saúde transformados · Hábitos permanentes · Longevidade ativa',
+        desbloqueada: false,
+      },
+    ],
+  },
+}
+
 // ── NUTRIÇÃO POR FASE ─────────────────────────────────────────────────────────
 const NUTRICAO_POR_FASE: Record<FaseMenopausa, { dicas: string[]; alimentos: string[]; evitar: string[] }> = {
   pre_menopausa: {
@@ -731,6 +868,7 @@ export default function ActionPlan() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'treino' | 'nutricao' | 'mentalidade'>('treino')
   const [local, setLocal] = useState<'academia' | 'casa'>('academia')
+  const [trilhaAtiva, setTrilhaAtiva] = useState<TrilhaAtiva>('8sem')
   const [semanaAtiva, setSemanaAtiva] = useState(0)
   const [expandedDia, setExpandedDia] = useState<number | null>(null)
 
@@ -772,6 +910,7 @@ export default function ActionPlan() {
   const hojeIndex = new Date().getDay()
   const diaHoje = diasSemana[hojeIndex]
   const treinoHoje = semana.desbloqueada ? semana.dias.find(d => d.dia === diaHoje) : null
+  const trilhaSelecionada = trilhaAtiva !== '8sem' ? TRILHAS_LONGAS[trilhaAtiva] : null
 
   const tabs = [
     { key: 'treino' as const, label: 'Treino', icon: <Dumbbell size={16} /> },
@@ -784,7 +923,7 @@ export default function ActionPlan() {
       <h1 className="page-title">Plano de Ação</h1>
       <p className="page-subtitle">
         {fase === 'pre_menopausa' ? 'Pré-Menopausa' : fase === 'menopausa' ? 'Menopausa' : 'Pós-Menopausa'}
-        {' · '}Programa de 8 semanas
+        {' · '}Sua jornada de evolução
       </p>
 
       {/* Treino de hoje — destaque com imagem */}
@@ -863,126 +1002,256 @@ export default function ActionPlan() {
             </div>
           ) : (
             <>
-              {/* Toggle Academia / Casa */}
-              <div className="flex gap-2 mb-1">
-                <button onClick={() => setLocal('academia')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
-                    local === 'academia' ? 'bg-rosa-500 text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-500'
-                  }`}>
-                  <Building2 size={16} /> Academia
-                </button>
-                <button onClick={() => setLocal('casa')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
-                    local === 'casa' ? 'bg-rosa-500 text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-500'
-                  }`}>
-                  <Home size={16} /> Em Casa
-                </button>
-              </div>
-
-              {/* Progressão — Seletor de semana */}
-              <div className="card">
-                <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
-                  <Trophy size={16} className="text-ouro-500" /> Progressão de 8 Semanas
+              {/* ── Seletor de Jornada ── */}
+              <div className="card pb-3">
+                <h3 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-2">
+                  <TrendingUp size={15} className="text-ouro-500" /> Sua Jornada de Evolução
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {programa.map((sem, i) => (
-                    <button key={i} onClick={() => sem.desbloqueada && setSemanaAtiva(i)}
-                      className={`relative p-3 rounded-xl text-left transition-all ${
-                        !sem.desbloqueada
-                          ? 'bg-gray-50 opacity-60 cursor-not-allowed'
-                          : semanaAtiva === i
-                            ? 'bg-rosa-50 border-2 border-rosa-400'
-                            : 'bg-white border-2 border-gray-100 hover:border-gray-200'
+                <div className="grid grid-cols-4 gap-1.5">
+                  {([
+                    { id: '8sem' as TrilhaAtiva, label: '8 sem' },
+                    { id: '90d' as TrilhaAtiva, label: '90 dias' },
+                    { id: '180d' as TrilhaAtiva, label: '180 dias' },
+                    { id: '360d' as TrilhaAtiva, label: '1 ano' },
+                  ]).map(t => (
+                    <button key={t.id} onClick={() => setTrilhaAtiva(t.id)}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                        trilhaAtiva === t.id
+                          ? 'bg-rosa-500 text-white shadow-sm'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                       }`}>
-                      {!sem.desbloqueada && (
-                        <Lock size={12} className="absolute top-2 right-2 text-gray-300" />
-                      )}
-                      {sem.desbloqueada && semanaAtiva === i && (
-                        <Check size={12} className="absolute top-2 right-2 text-rosa-500" />
-                      )}
-                      <p className="text-xs text-gray-400 font-medium">{sem.semana}</p>
-                      <p className="text-sm font-bold text-gray-700 mt-0.5">{sem.titulo}</p>
+                      {t.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-3 text-center italic">{semana.descricao}</p>
               </div>
 
-              {/* Lista de dias da semana selecionada */}
-              {semana.desbloqueada && semana.dias.length > 0 && semana.dias.map((d, i) => {
-                const exercicios = local === 'academia' ? d.academia : d.casa
-                return (
-                  <div key={i}
-                    className={`card cursor-pointer transition-all ${d.dia === diaHoje ? 'border-rosa-300 border-2' : ''}`}
-                    onClick={() => setExpandedDia(expandedDia === i ? null : i)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {d.dia === diaHoje && <div className="w-2.5 h-2.5 rounded-full bg-rosa-500 animate-pulse flex-shrink-0" />}
-                        <div>
-                          <p className={`font-semibold text-base ${d.dia === diaHoje ? 'text-rosa-600' : 'text-gray-800'}`}>
-                            {d.dia} {d.dia === diaHoje ? '· Hoje' : ''}
-                          </p>
-                          <p className="text-sm text-gray-500">{d.foco}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${intensidadeColor(d.intensidade)}`}>
-                          {d.intensidade}
-                        </span>
-                        {expandedDia === i ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-                      </div>
+              {/* ── TRILHA 8 SEMANAS (padrão) ── */}
+              {trilhaAtiva === '8sem' && (
+                <>
+                  {/* Toggle Academia / Casa */}
+                  <div className="flex gap-2 mb-1">
+                    <button onClick={() => setLocal('academia')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
+                        local === 'academia' ? 'bg-rosa-500 text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-500'
+                      }`}>
+                      <Building2 size={16} /> Academia
+                    </button>
+                    <button onClick={() => setLocal('casa')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
+                        local === 'casa' ? 'bg-rosa-500 text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-500'
+                      }`}>
+                      <Home size={16} /> Em Casa
+                    </button>
+                  </div>
+
+                  {/* Progressão — Seletor de semana */}
+                  <div className="card">
+                    <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
+                      <Trophy size={16} className="text-ouro-500" /> Progressão de 8 Semanas
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {programa.map((sem, i) => (
+                        <button key={i} onClick={() => sem.desbloqueada && setSemanaAtiva(i)}
+                          className={`relative p-3 rounded-xl text-left transition-all ${
+                            !sem.desbloqueada
+                              ? 'bg-gray-50 opacity-60 cursor-not-allowed'
+                              : semanaAtiva === i
+                                ? 'bg-rosa-50 border-2 border-rosa-400'
+                                : 'bg-white border-2 border-gray-100 hover:border-gray-200'
+                          }`}>
+                          {!sem.desbloqueada && (
+                            <Lock size={12} className="absolute top-2 right-2 text-gray-300" />
+                          )}
+                          {sem.desbloqueada && semanaAtiva === i && (
+                            <Check size={12} className="absolute top-2 right-2 text-rosa-500" />
+                          )}
+                          <p className="text-xs text-gray-400 font-medium">{sem.semana}</p>
+                          <p className="text-sm font-bold text-gray-700 mt-0.5">{sem.titulo}</p>
+                        </button>
+                      ))}
                     </div>
+                    <p className="text-xs text-gray-400 mt-3 text-center italic">{semana.descricao}</p>
+                  </div>
 
-                    {expandedDia === i && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        {/* Info */}
-                        <div className="flex gap-3 text-sm text-gray-500 mb-3">
-                          <span>⏱ {d.duracao}</span>
-                          {d.cardio && <span>❤️ Cardio: {d.cardio.duracao}</span>}
-                        </div>
-
-                        {/* Exercícios */}
-                        <div className="space-y-2">
-                          {exercicios.map((ex, j) => (
-                            <div key={j} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-700">{ex.nome}</p>
-                                {ex.obs && <p className="text-xs text-gray-400 mt-0.5">{ex.obs}</p>}
-                              </div>
-                              <span className="text-sm font-bold text-rosa-500 ml-2">{ex.series}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Cardio */}
-                        {d.cardio && (
-                          <div className="mt-3 bg-red-50 rounded-xl p-3 flex items-center gap-3">
-                            <Heart size={18} className="text-red-400 flex-shrink-0" />
+                  {/* Lista de dias da semana selecionada */}
+                  {semana.desbloqueada && semana.dias.length > 0 && semana.dias.map((d, i) => {
+                    const exercicios = local === 'academia' ? d.academia : d.casa
+                    return (
+                      <div key={i}
+                        className={`card cursor-pointer transition-all ${d.dia === diaHoje ? 'border-rosa-300 border-2' : ''}`}
+                        onClick={() => setExpandedDia(expandedDia === i ? null : i)}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {d.dia === diaHoje && <div className="w-2.5 h-2.5 rounded-full bg-rosa-500 animate-pulse flex-shrink-0" />}
                             <div>
-                              <p className="text-sm font-semibold text-red-600">Cardio: {d.cardio.tipo}</p>
-                              <p className="text-xs text-red-400">
-                                {d.cardio.duracao} {d.cardio.fc && `· FC alvo: ${d.cardio.fc}`}
+                              <p className={`font-semibold text-base ${d.dia === diaHoje ? 'text-rosa-600' : 'text-gray-800'}`}>
+                                {d.dia} {d.dia === diaHoje ? '· Hoje' : ''}
                               </p>
+                              <p className="text-sm text-gray-500">{d.foco}</p>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${intensidadeColor(d.intensidade)}`}>
+                              {d.intensidade}
+                            </span>
+                            {expandedDia === i ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                          </div>
+                        </div>
+
+                        {expandedDia === i && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            {/* Info */}
+                            <div className="flex gap-3 text-sm text-gray-500 mb-3">
+                              <span>⏱ {d.duracao}</span>
+                              {d.cardio && <span>❤️ Cardio: {d.cardio.duracao}</span>}
+                            </div>
+
+                            {/* Exercícios */}
+                            <div className="space-y-2">
+                              {exercicios.map((ex, j) => (
+                                <div key={j} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-700">{ex.nome}</p>
+                                    {ex.obs && <p className="text-xs text-gray-400 mt-0.5">{ex.obs}</p>}
+                                  </div>
+                                  <span className="text-sm font-bold text-rosa-500 ml-2">{ex.series}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Cardio */}
+                            {d.cardio && (
+                              <div className="mt-3 bg-red-50 rounded-xl p-3 flex items-center gap-3">
+                                <Heart size={18} className="text-red-400 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-semibold text-red-600">Cardio: {d.cardio.tipo}</p>
+                                  <p className="text-xs text-red-400">
+                                    {d.cardio.duracao} {d.cardio.fc && `· FC alvo: ${d.cardio.fc}`}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  })}
 
-              {/* Semana bloqueada */}
-              {!semana.desbloqueada && (
-                <div className="card text-center py-8">
-                  <Lock size={32} className="mx-auto text-gray-300 mb-3" />
-                  <p className="font-semibold text-gray-600 mb-1">Fase Bloqueada</p>
-                  <p className="text-sm text-gray-400">Complete as semanas anteriores para desbloquear esta fase.</p>
-                  <div className="mt-4 flex items-center justify-center gap-2">
-                    <Zap size={14} className="text-ouro-500" />
-                    <span className="text-xs text-ouro-600 font-medium">Continue treinando — você está quase lá!</span>
+                  {/* Semana bloqueada */}
+                  {!semana.desbloqueada && (
+                    <div className="card text-center py-8">
+                      <Lock size={32} className="mx-auto text-gray-300 mb-3" />
+                      <p className="font-semibold text-gray-600 mb-1">Fase Bloqueada</p>
+                      <p className="text-sm text-gray-400">Complete as semanas anteriores para desbloquear esta fase.</p>
+                      <div className="mt-4 flex items-center justify-center gap-2">
+                        <Zap size={14} className="text-ouro-500" />
+                        <span className="text-xs text-ouro-600 font-medium">Continue treinando — você está quase lá!</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── TRILHAS DE LONGA DURAÇÃO (90d / 180d / 360d) ── */}
+              {trilhaSelecionada && (
+                <>
+                  {/* Hero Banner */}
+                  <div className="relative rounded-2xl overflow-hidden h-32">
+                    <img
+                      src={trilhaSelecionada.imagem}
+                      alt={trilhaSelecionada.label}
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 flex flex-col justify-end p-4"
+                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 100%)' }}>
+                      <p className="font-bold text-white text-base leading-tight">{trilhaSelecionada.label}</p>
+                      <p className="text-white/75 text-xs mt-0.5">{trilhaSelecionada.descricao}</p>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Fases da Trilha */}
+                  {trilhaSelecionada.fases.map((fase, i) => (
+                    <div key={i} className={`card transition-all ${!fase.desbloqueada ? 'opacity-80' : ''}`}>
+                      <div className="flex items-start gap-3">
+                        {/* Ícone / Status */}
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
+                          fase.desbloqueada ? 'bg-rosa-50' : 'bg-gray-50'
+                        }`}>
+                          {fase.desbloqueada
+                            ? <span>{fase.icone}</span>
+                            : <Lock size={16} className="text-gray-300" />
+                          }
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          {/* Header */}
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <p className="text-[11px] text-gray-400 font-medium">{fase.periodo}</p>
+                            {!fase.desbloqueada && (
+                              <span className="text-[10px] bg-ouro-50 text-ouro-600 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
+                                🔓 Assinatura ativa
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-bold text-gray-800 text-sm">{fase.icone} {fase.titulo}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{fase.descricao}</p>
+
+                          {/* Detalhes — apenas fase desbloqueada */}
+                          {fase.desbloqueada && (
+                            <div className="mt-3 space-y-2">
+                              <div className="bg-rosa-50 rounded-xl p-2.5">
+                                <p className="text-[11px] font-semibold text-rosa-700 mb-1.5">🏋️‍♀️ Foco de Treino</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {fase.foco_treino.map((f, j) => (
+                                    <span key={j} className="text-[10px] bg-white text-rosa-600 px-2 py-0.5 rounded-full border border-rosa-100">{f}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="bg-green-50 rounded-xl p-2.5">
+                                <p className="text-[11px] font-semibold text-green-700 mb-1.5">🥗 Foco Nutricional</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {fase.foco_nutricao.map((f, j) => (
+                                    <span key={j} className="text-[10px] bg-white text-green-600 px-2 py-0.5 rounded-full border border-green-100">{f}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="bg-ouro-50 rounded-xl p-2.5">
+                                <p className="text-[11px] font-semibold text-ouro-700 mb-1">🎯 Resultado Esperado</p>
+                                <p className="text-[11px] text-ouro-600 leading-relaxed">{fase.meta}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Preview bloqueada */}
+                          {!fase.desbloqueada && (
+                            <p className="text-[11px] text-gray-400 mt-1.5">🎯 {fase.meta}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Conector vertical entre fases */}
+                      {i < trilhaSelecionada.fases.length - 1 && (
+                        <div className="ml-5 mt-3 flex items-center gap-1">
+                          <div className="w-px h-4 bg-gray-200 ml-0.5" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* CTA Assinatura */}
+                  <div className="card text-center py-5" style={{ background: 'linear-gradient(135deg, #fdf6e3 0%, #fdf0f3 100%)' }}>
+                    <Star size={22} className="mx-auto text-ouro-500 mb-2" />
+                    <p className="font-bold text-gray-800 text-base mb-1">Continue sua jornada!</p>
+                    <p className="text-sm text-gray-500 mb-3 leading-relaxed">
+                      Mantenha sua assinatura ativa e as fases vão sendo desbloqueadas automaticamente conforme você avança.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 bg-white rounded-xl py-2.5 px-4 border border-ouro-100">
+                      <Check size={14} className="text-green-500 flex-shrink-0" />
+                      <span className="text-xs text-green-700 font-medium">Assinatura ativa · Próxima fase desbloqueada em breve</span>
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}
