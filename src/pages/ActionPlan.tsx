@@ -6,7 +6,8 @@ import {
   Dumbbell, Apple, Brain, ClipboardList,
   TrendingUp, Loader2, Flame, Droplets,
   Moon, Heart, ChevronDown, ChevronUp, Star,
-  Home, Building2, Zap, Trophy, Lock, Check
+  Home, Building2, Zap, Trophy, Lock, Check,
+  PlayCircle
 } from 'lucide-react'
 
 // ── TIPOS ─────────────────────────────────────────────────────────────────────
@@ -1123,12 +1124,31 @@ export default function ActionPlan() {
                             {/* Exercícios */}
                             <div className="space-y-2">
                               {exercicios.map((ex, j) => (
-                                <div key={j} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-700">{ex.nome}</p>
-                                    {ex.obs && <p className="text-xs text-gray-400 mt-0.5">{ex.obs}</p>}
+                                <div key={j} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-700">{ex.nome}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-2 shrink-0">
+                                      <span className="text-sm font-bold text-rosa-500">{ex.series}</span>
+                                      {!ex.nome.startsWith('🛌') && !ex.nome.startsWith('🏆') && (
+                                        <button
+                                          onClick={e => {
+                                            e.stopPropagation()
+                                            window.open(
+                                              `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.nome + ' como fazer execução correta')}`,
+                                              '_blank'
+                                            )
+                                          }}
+                                          className="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 transition-colors"
+                                          title="Ver demonstração no YouTube"
+                                        >
+                                          <PlayCircle size={16} className="text-red-500" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <span className="text-sm font-bold text-rosa-500 ml-2">{ex.series}</span>
+                                  {ex.obs && <p className="text-xs text-gray-400 mt-1">{ex.obs}</p>}
                                 </div>
                               ))}
                             </div>
