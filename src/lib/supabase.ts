@@ -235,3 +235,83 @@ export async function toggleCurtida(postId: string, incremento: number) {
   })
   return { data, error }
 }
+
+// ── ARTIGOS CIENTÍFICOS ───────────────────────────────────────────────────────
+
+export async function getArtigos(apenasPublicados = true) {
+  let query = supabase
+    .from('artigos')
+    .select('*')
+    .order('data_pub', { ascending: false })
+  if (apenasPublicados) {
+    query = query.eq('publicado', true)
+  }
+  const { data, error } = await query
+  return { data, error }
+}
+
+export async function getArtigo(id: string) {
+  const { data, error } = await supabase
+    .from('artigos')
+    .select('*')
+    .eq('id', id)
+    .single()
+  return { data, error }
+}
+
+export async function upsertArtigo(artigo: Record<string, unknown>) {
+  const { id, ...rest } = artigo
+  const payload = { ...rest, updated_at: new Date().toISOString() }
+  if (id) {
+    const { data, error } = await supabase
+      .from('artigos')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+    return { data, error }
+  }
+  const { data, error } = await supabase
+    .from('artigos')
+    .insert(payload)
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function deleteArtigo(id: string) {
+  const { error } = await supabase
+    .from('artigos')
+    .delete()
+    .eq('id', id)
+  return { error }
+}
+
+// ── MODERAÇÃO COMUNIDADE ──────────────────────────────────────────────────────
+
+export async function getAllCommunityPosts(limit = 100) {
+  const { data, error } = await supabase
+    .from('community_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return { data, error }
+}
+
+export async function moderarPost(postId: string, updates: { pinado?: boolean; oculto?: boolean }) {
+  const { data, error } = await supabase
+    .from('community_posts')
+    .update(updates)
+    .eq('id', postId)
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function deleteCommunityPost(postId: string) {
+  const { error } = await supabase
+    .from('community_posts')
+    .delete()
+    .eq('id', postId)
+  return { error }
+}

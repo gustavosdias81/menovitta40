@@ -109,6 +109,8 @@ export interface CommunityPost {
   texto: string
   foto_url?: string
   curtidas: number
+  pinado?: boolean
+  oculto?: boolean
   created_at: string
 }
 
@@ -117,6 +119,21 @@ export interface MacroMeta {
   proteinas: number
   gorduras: number
   carboidratos: number
+}
+
+export interface Artigo {
+  id: string
+  titulo: string
+  resumo: string
+  conteudo: string
+  fonte: string
+  data_pub: string
+  tags: string[]
+  imagem_url: string
+  categoria: string
+  publicado: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface TreinoLog {

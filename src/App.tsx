@@ -19,6 +19,7 @@ import Settings from './pages/Settings'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminAddUser from './pages/admin/AddUser'
 import AdminEditUser from './pages/admin/EditUser'
+import AdminArtigos from './pages/admin/Artigos'
 
 function AppRoutes() {
   const { user, loading, quizCompleto } = useAuth()
@@ -83,6 +84,11 @@ function AppRoutes() {
       <Route path="/admin/aluna/:userId" element={
         <ProtectedRoute requireAdmin>
           <AdminEditUser />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/artigos" element={
+        <ProtectedRoute requireAdmin>
+          <AdminArtigos />
         </ProtectedRoute>
       } />
 

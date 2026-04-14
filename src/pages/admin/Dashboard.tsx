@@ -5,7 +5,7 @@ import type { Profile, Notificacao } from '../../types'
 import {
   Crown, Users, UserPlus, Search, Bell, BellRing,
   MessageSquare, ChevronRight, Loader2, ArrowLeft, User,
-  Filter, Send, TrendingUp, Activity, WifiOff, Wifi
+  Filter, Send, TrendingUp, Activity, WifiOff, Wifi, BookOpen, FlaskConical
 } from 'lucide-react'
 
 const FASE_LABELS: Record<string, string> = {
@@ -147,6 +147,13 @@ export default function AdminDashboard() {
           </h1>
           <p className="text-sm text-gray-500">Gerencie suas alunas</p>
         </div>
+        <button
+          onClick={() => navigate('/admin/artigos')}
+          title="Gerenciar Artigos"
+          className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center shadow-sm"
+        >
+          <FlaskConical size={18} className="text-purple-500" />
+        </button>
         <button
           onClick={() => navigate('/admin/nova-aluna')}
           className="w-10 h-10 bg-rosa-500 rounded-xl flex items-center justify-center shadow-md"
@@ -374,6 +381,21 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-purple-400 mt-0.5">Pós-Meno</p>
               </div>
             </div>
+          </div>
+
+          {/* Atalho artigos científicos */}
+          <div
+            className="card flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/admin/artigos')}
+          >
+            <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
+              <FlaskConical size={22} className="text-purple-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-800 text-sm">Artigos Científicos</p>
+              <p className="text-xs text-gray-400">Publicar e gerenciar artigos para as alunas</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
           </div>
 
           {/* Alunas com quiz pendente */}
