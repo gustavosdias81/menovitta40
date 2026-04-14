@@ -1,35 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useAuth } from '../contexts/AuthContext'
 import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
 import {
   Camera, Upload, Loader2, Utensils, Plus,
-  TrendingUp, X, Sparkles, ChevronDown, ChevronUp
+  TrendingUp, X, Sparkles, ChevronDown, ChevronUp,
+  AlertCircle, Leaf
 } from 'lucide-react'
 
-// ============================================================
-// INTEGRAÇÃO COM IA DE VISÃO COMPUTACIONAL
-// ============================================================
-// RECOMENDAÇÃO: Use a API da Clarifai (modelo "food-item-recognition")
-// ou a API do Google Cloud Vision + Nutritionix para obter dados
-// nutricionais a partir da foto.
-//
-// Para o MVP, a função abaixo simula a análise. Substitua pela
-// chamada real à API quando configurar as credenciais.
-//
-// Alternativas de API recomendadas:
-// 1. Clarifai Food Model: https://clarifai.com (US$ 0,0025/chamada)
-// 2. LogMeal API: https://logmeal.com/api (especializado em nutrição)
-// 3. Passio.ai: https://passio.ai (SDK nativo, melhor precisão)
-// 4. Google Vision + Nutritionix: combinação robusta
-//
-// Fluxo recomendado:
-// 1. Upload da imagem para Supabase Storage
-// 2. Enviar URL da imagem para API de reconhecimento
-// 3. API retorna lista de alimentos detectados
-// 4. Buscar dados nutricionais no Nutritionix/TACO (tabela brasileira)
-// 5. Exibir resultado para a usuária confirmar/ajustar
-// ============================================================
+// ── Gemini 1.5 Flash ──────────────────────────────────────────────────────────
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
 interface AnaliseResultado {
   descricao: string
@@ -40,53 +21,69 @@ interface AnaliseResultado {
   fibras: number
   alimentos_detectados: string[]
   confianca: number
+  dica_menopausa: string
 }
 
-// Simulação da análise de IA (substituir pela API real)
-async function analisarPratoIA(_imageFile: File): Promise<AnaliseResultado> {
-  // Simular delay de processamento
-  await new Promise(resolve => setTimeout(resolve, 2000))
+async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-  // Dados simulados — serão substituídos pela API real
-  const pratos = [
-    {
-      descricao: 'Prato com arroz, feijão, frango grelhado e salada',
-      calorias: 485,
-      proteinas: 38,
-      gorduras: 12,
-      carboidratos: 52,
-      fibras: 8,
-      alimentos_detectados: ['Arroz branco', 'Feijão carioca', 'Frango grelhado', 'Alface', 'Tomate'],
-      confianca: 0.87,
-    },
-    {
-      descricao: 'Omelete com legumes e pão integral',
-      calorias: 320,
-      proteinas: 22,
-      gorduras: 18,
-      carboidratos: 24,
-      fibras: 4,
-      alimentos_detectados: ['Ovo', 'Pimentão', 'Cebola', 'Pão integral', 'Azeite'],
-      confianca: 0.82,
-    },
-    {
-      descricao: 'Salada com frango, quinoa e abacate',
-      calorias: 410,
-      proteinas: 32,
-      gorduras: 20,
-      carboidratos: 30,
-      fibras: 10,
-      alimentos_detectados: ['Frango desfiado', 'Quinoa', 'Abacate', 'Rúcula', 'Tomate cereja'],
-      confianca: 0.91,
-    },
-  ]
+  // Converte o arquivo para base64
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(',')[1]) // remove o prefixo "data:image/...;base64,"
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
 
-  return pratos[Math.floor(Math.random() * pratos.length)]
+  const base64 = await toBase64(imageFile)
+
+  const prompt = `Analise esta foto de refeição e retorne um JSON com análise nutricional estimada.
+Contexto: App de saúde para mulheres 40+ na menopausa que buscam emagrecer.
+
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json, sem explicações) com este formato exato:
+{
+  "descricao": "Descrição resumida do prato em português",
+  "calorias": <número inteiro>,
+  "proteinas": <gramas com 1 decimal>,
+  "gorduras": <gramas com 1 decimal>,
+  "carboidratos": <gramas com 1 decimal>,
+  "fibras": <gramas com 1 decimal>,
+  "alimentos_detectados": ["alimento1", "alimento2"],
+  "confianca": <número entre 0 e 1>,
+  "dica_menopausa": "Uma dica específica sobre como este prato impacta o emagrecimento/saúde na menopausa"
 }
+
+Se não conseguir identificar alimentos (imagem ilegível ou sem comida), retorne confianca: 0 e calorias: 0.`
+
+  const result = await model.generateContent([
+    prompt,
+    {
+      inlineData: {
+        mimeType: imageFile.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic',
+        data: base64,
+      },
+    },
+  ])
+
+  const text = result.response.text().trim()
+
+  // Remove possíveis blocos de markdown que o modelo às vezes inclui
+  const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+
+  const parsed = JSON.parse(clean) as AnaliseResultado
+  return parsed
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function NutritionalAI() {
   const { user } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -97,6 +94,7 @@ export default function NutritionalAI() {
   const [todayLogs, setTodayLogs] = useState<FoodLog[]>([])
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) loadTodayData()
@@ -116,30 +114,39 @@ export default function NutritionalAI() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     setImageFile(file)
     setResultado(null)
     setSaved(false)
-
+    setError(null)
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      setImagePreview(ev.target?.result as string)
-    }
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
     reader.readAsDataURL(file)
+    // limpa o input para permitir re-selecionar a mesma foto
+    e.target.value = ''
   }
 
   const handleAnalyze = async () => {
     if (!imageFile) return
     setAnalyzing(true)
-    const result = await analisarPratoIA(imageFile)
-    setResultado(result)
-    setAnalyzing(false)
+    setError(null)
+    try {
+      const result = await analisarPratoIA(imageFile)
+      if (result.confianca === 0) {
+        setError('Não consegui identificar alimentos nesta imagem. Tente uma foto mais próxima do prato.')
+      } else {
+        setResultado(result)
+      }
+    } catch (err) {
+      console.error('Gemini error:', err)
+      setError('Erro ao analisar a imagem. Verifique sua conexão e tente novamente.')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   const handleSave = async () => {
     if (!user || !resultado) return
     setSaving(true)
-
     await saveFoodLog({
       user_id: user.id,
       descricao: resultado.descricao,
@@ -151,7 +158,6 @@ export default function NutritionalAI() {
       refeicao,
       data: new Date().toISOString().split('T')[0],
     })
-
     setSaved(true)
     setSaving(false)
     await loadTodayData()
@@ -162,9 +168,9 @@ export default function NutritionalAI() {
     setImageFile(null)
     setResultado(null)
     setSaved(false)
+    setError(null)
   }
 
-  // Consumo total do dia
   const consumoTotal = todayLogs.reduce(
     (acc, log) => ({
       calorias: acc.calorias + (log.calorias || 0),
@@ -190,10 +196,17 @@ export default function NutritionalAI() {
     outro: 'Outro',
   }
 
+  const pctCalorias = Math.min(100, Math.round((consumoTotal.calorias / metaIdeal.calorias) * 100))
+
   return (
     <div className="page-container">
-      <h1 className="page-title">IA Nutricional</h1>
-      <p className="page-subtitle">Tire uma foto do seu prato e descubra os macros</p>
+      <div className="flex items-center gap-2 mb-1">
+        <h1 className="page-title">IA Nutricional</h1>
+        <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">
+          Gemini AI
+        </span>
+      </div>
+      <p className="page-subtitle mb-4">Tire uma foto do seu prato e descubra os macros</p>
 
       {/* Resumo do dia */}
       <div className="card mb-4">
@@ -203,6 +216,22 @@ export default function NutritionalAI() {
             Resumo do Dia
           </h2>
           <span className="text-xs text-gray-400">{todayLogs.length} refeições</span>
+        </div>
+
+        {/* Barra de progresso calórico */}
+        <div className="mb-3">
+          <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+            <span>{consumoTotal.calorias} kcal consumidas</span>
+            <span>Meta: {metaIdeal.calorias} kcal</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                pctCalorias > 100 ? 'bg-red-400' : pctCalorias > 85 ? 'bg-orange-400' : 'bg-green-400'
+              }`}
+              style={{ width: `${pctCalorias}%` }}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -220,7 +249,6 @@ export default function NutritionalAI() {
           ))}
         </div>
 
-        {/* Meta inteligente */}
         <div className="mt-3 bg-rosa-50 rounded-xl p-3">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={14} className="text-rosa-500" />
@@ -239,24 +267,35 @@ export default function NutritionalAI() {
 
       {/* Scanner */}
       <div className="card mb-4">
+        {/* inputs ocultos */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
         {!imagePreview ? (
           <div className="text-center py-6">
             <div className="w-20 h-20 mx-auto mb-4 bg-rosa-50 rounded-full flex items-center justify-center">
               <Camera size={32} className="text-rosa-500" />
             </div>
             <h3 className="font-semibold text-gray-800 mb-1">Escaneie seu Prato</h3>
-            <p className="text-xs text-gray-400 mb-5">
-              Tire uma foto ou escolha da galeria para análise nutricional
+            <p className="text-xs text-gray-400 mb-1">
+              Tire uma foto ou escolha da galeria para análise com IA
             </p>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
+            <p className="text-[10px] text-rosa-400 mb-5 flex items-center justify-center gap-1">
+              <Sparkles size={11} /> Análise real com Gemini 1.5 Flash
+            </p>
 
             <div className="flex gap-3">
               <button
@@ -266,13 +305,7 @@ export default function NutritionalAI() {
                 <Camera size={18} /> Tirar Foto
               </button>
               <button
-                onClick={() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.removeAttribute('capture')
-                    fileInputRef.current.click()
-                    fileInputRef.current.setAttribute('capture', 'environment')
-                  }
-                }}
+                onClick={() => galleryInputRef.current?.click()}
                 className="btn-secondary flex-1 flex items-center justify-center gap-2"
               >
                 <Upload size={18} /> Galeria
@@ -286,7 +319,7 @@ export default function NutritionalAI() {
               <img
                 src={imagePreview}
                 alt="Prato"
-                className="w-full h-48 object-cover rounded-2xl"
+                className="w-full h-52 object-cover rounded-2xl"
               />
               <button
                 onClick={resetScanner}
@@ -316,6 +349,14 @@ export default function NutritionalAI() {
               </div>
             </div>
 
+            {/* Erro */}
+            {error && (
+              <div className="flex items-start gap-2 bg-red-50 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-3">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                {error}
+              </div>
+            )}
+
             {/* Botão analisar */}
             {!resultado && (
               <button
@@ -326,12 +367,12 @@ export default function NutritionalAI() {
                 {analyzing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Analisando com IA...
+                    Analisando com Gemini AI...
                   </>
                 ) : (
                   <>
                     <Sparkles size={18} />
-                    Analisar Prato
+                    Analisar com IA
                   </>
                 )}
               </button>
@@ -340,6 +381,7 @@ export default function NutritionalAI() {
             {/* Resultado da análise */}
             {resultado && (
               <div className="space-y-4">
+                {/* Header resultado */}
                 <div className="bg-green-50 rounded-2xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles size={16} className="text-green-600" />
@@ -352,12 +394,15 @@ export default function NutritionalAI() {
                 </div>
 
                 {/* Alimentos detectados */}
-                <div className="flex flex-wrap gap-1.5">
-                  {resultado.alimentos_detectados.map((alimento, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                      {alimento}
-                    </span>
-                  ))}
+                <div>
+                  <p className="text-[11px] text-gray-400 mb-1.5 font-medium">Alimentos detectados:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {resultado.alimentos_detectados.map((alimento, i) => (
+                      <span key={i} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                        {alimento}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Macros */}
@@ -380,16 +425,40 @@ export default function NutritionalAI() {
                   </div>
                 </div>
 
-                {/* Meta inteligente por refeição */}
+                {/* Fibras */}
+                {resultado.fibras > 0 && (
+                  <div className="bg-green-50 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Leaf size={14} className="text-green-600" />
+                      <span className="text-xs text-green-700 font-medium">Fibras</span>
+                    </div>
+                    <span className="text-sm font-bold text-green-600">{resultado.fibras}g</span>
+                  </div>
+                )}
+
+                {/* Dica menopausa */}
+                {resultado.dica_menopausa && (
+                  <div className="bg-rosa-50 rounded-xl p-3 border border-rosa-100">
+                    <div className="flex items-start gap-2">
+                      <Sparkles size={14} className="text-rosa-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-rosa-700 mb-0.5">Dica para sua fase:</p>
+                        <p className="text-xs text-rosa-600">{resultado.dica_menopausa}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Meta vs refeição */}
                 <div className="bg-ouro-50 rounded-xl p-3 border border-ouro-200">
                   <div className="flex items-center gap-2 mb-1">
                     <Sparkles size={14} className="text-ouro-500" />
                     <span className="text-xs font-semibold text-ouro-700">
-                      Ideal para esta refeição ({refeicaoLabels[refeicao]}):
+                      Ideal para {refeicaoLabels[refeicao]}:
                     </span>
                   </div>
                   <p className="text-xs text-ouro-600">
-                    ~{Math.round(metaIdeal.calorias / 4)} kcal | ~{Math.round(metaIdeal.proteinas / 4)}g prot | ~{Math.round(metaIdeal.gorduras / 4)}g gord | ~{Math.round(metaIdeal.carboidratos / 4)}g carb
+                    ~{Math.round(metaIdeal.calorias / 4)} kcal · ~{Math.round(metaIdeal.proteinas / 4)}g prot · ~{Math.round(metaIdeal.gorduras / 4)}g gord · ~{Math.round(metaIdeal.carboidratos / 4)}g carb
                   </p>
                 </div>
 
