@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
-import type { PlanoAcao, FaseMenopausa, Objetivo } from '../types'
+import { supabase, saveTreinoLog, getTreinoLogs } from '../lib/supabase'
+import type { PlanoAcao, FaseMenopausa, Objetivo, TreinoLog } from '../types'
 import {
   Dumbbell, Apple, Brain, ClipboardList,
   TrendingUp, Loader2, Flame, Droplets,
   Moon, Heart, ChevronDown, ChevronUp, Star,
   Home, Building2, Zap, Trophy, Lock, Check,
-  PlayCircle
+  PlayCircle, CheckCircle2, Calendar
 } from 'lucide-react'
 
 // ── TIPOS ─────────────────────────────────────────────────────────────────────
@@ -863,6 +863,36 @@ const intensidadeColor = (i: string) => {
 const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
+// ── helpers de streak ────────────────────────────────────────────────────────
+function calcularStreak(logs: TreinoLog[]): number {
+  if (!logs.length) return 0
+  const datas = [...new Set(logs.map(l => l.data))].sort().reverse()
+  const hoje = new Date().toISOString().split('T')[0]
+  let streak = 0
+  let esperado = hoje
+  for (const data of datas) {
+    if (data === esperado) {
+      streak++
+      const d = new Date(esperado + 'T12:00:00')
+      d.setDate(d.getDate() - 1)
+      esperado = d.toISOString().split('T')[0]
+    } else if (data < esperado) {
+      break
+    }
+  }
+  return streak
+}
+
+function streakLabel(n: number): string {
+  if (n === 0) return 'Comece hoje!'
+  if (n === 1) return '1 dia seguido 🌱'
+  if (n < 7)  return `${n} dias seguidos 💪`
+  if (n < 14) return `${n} dias — incrível! 🔥`
+  if (n < 30) return `${n} dias — você é imparável! 🔥🔥`
+  return `${n} dias — lenda! 🏆`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ActionPlan() {
   const { user, profile } = useAuth()
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
@@ -873,6 +903,10 @@ export default function ActionPlan() {
   const [semanaAtiva, setSemanaAtiva] = useState(0)
   const [expandedDia, setExpandedDia] = useState<number | null>(null)
 
+  // Streak & registro diário
+  const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
+  const [marcando, setMarcando] = useState(false)
+
   useEffect(() => {
     if (user) loadData()
   }, [user])
@@ -880,13 +914,15 @@ export default function ActionPlan() {
   const loadData = async () => {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
-      .from('planos_acao').select('*').eq('user_id', user.id).maybeSingle()
-    if (data) {
-      setPlano(data as PlanoAcao)
-      // Restaura trilha salva no Supabase
-      if (data.trilha_ativa) setTrilhaAtiva(data.trilha_ativa as TrilhaAtiva)
+    const [planoRes, logsRes] = await Promise.all([
+      supabase.from('planos_acao').select('*').eq('user_id', user.id).maybeSingle(),
+      getTreinoLogs(user.id, 60),
+    ])
+    if (planoRes.data) {
+      setPlano(planoRes.data as PlanoAcao)
+      if (planoRes.data.trilha_ativa) setTrilhaAtiva(planoRes.data.trilha_ativa as TrilhaAtiva)
     }
+    if (logsRes.data) setTreinoLogs(logsRes.data as TreinoLog[])
     setLoading(false)
   }
 
@@ -897,6 +933,16 @@ export default function ActionPlan() {
       .from('planos_acao')
       .update({ trilha_ativa: nova, updated_at: new Date().toISOString() })
       .eq('user_id', user.id)
+  }
+
+  const marcarTreinoConcluido = async (foco: string, duracao: string) => {
+    if (!user || marcando) return
+    setMarcando(true)
+    const hoje = new Date().toISOString().split('T')[0]
+    await saveTreinoLog({ user_id: user.id, data: hoje, foco, duracao, local })
+    const { data } = await getTreinoLogs(user.id, 60)
+    if (data) setTreinoLogs(data as TreinoLog[])
+    setMarcando(false)
   }
 
   if (loading) {
@@ -926,6 +972,19 @@ export default function ActionPlan() {
   const treinoHoje = semana.desbloqueada ? semana.dias.find(d => d.dia === diaHoje) : null
   const trilhaSelecionada = trilhaAtiva !== '8sem' ? TRILHAS_LONGAS[trilhaAtiva] : null
 
+  // Streak
+  const hoje = new Date().toISOString().split('T')[0]
+  const streak = calcularStreak(treinoLogs)
+  const treinoHojeConcluido = treinoLogs.some(l => l.data === hoje)
+
+  // Mini-calendário: últimos 21 dias
+  const ultimos21 = Array.from({ length: 21 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (20 - i))
+    return d.toISOString().split('T')[0]
+  })
+  const diasFeitos = new Set(treinoLogs.map(l => l.data))
+
   const tabs = [
     { key: 'treino' as const, label: 'Treino', icon: <Dumbbell size={16} /> },
     { key: 'nutricao' as const, label: 'Nutrição', icon: <Apple size={16} /> },
@@ -940,7 +999,69 @@ export default function ActionPlan() {
         {' · '}Sua jornada de evolução
       </p>
 
-      {/* Treino de hoje — destaque com imagem */}
+      {/* ── STREAK BANNER ── */}
+      <div className={`mb-4 rounded-2xl p-4 flex items-center gap-4 ${
+        streak >= 7 ? 'bg-gradient-to-r from-ouro-400 to-orange-400' :
+        streak >= 1 ? 'bg-gradient-to-r from-rosa-400 to-rosa-500' :
+        'bg-gray-100'
+      }`}>
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 ${
+          streak >= 1 ? 'bg-white/20' : 'bg-gray-200'
+        }`}>
+          {streak >= 7 ? '🏆' : streak >= 1 ? '🔥' : '💤'}
+        </div>
+        <div className="flex-1">
+          <p className={`font-bold text-base ${streak >= 1 ? 'text-white' : 'text-gray-500'}`}>
+            {streak >= 1 ? `${streak} dia${streak > 1 ? 's' : ''} consecutivo${streak > 1 ? 's' : ''}!` : 'Nenhum treino registrado'}
+          </p>
+          <p className={`text-xs ${streak >= 1 ? 'text-white/80' : 'text-gray-400'}`}>
+            {streakLabel(streak)}
+          </p>
+        </div>
+        {treinoHojeConcluido && (
+          <div className="bg-white/20 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-white" />
+            <span className="text-xs font-bold text-white">Hoje ✓</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── MINI CALENDÁRIO (21 dias) ── */}
+      <div className="card mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar size={15} className="text-rosa-400" />
+          <span className="text-sm font-semibold text-gray-700">Histórico de Treinos</span>
+          <span className="ml-auto text-xs text-gray-400">{treinoLogs.length} treino{treinoLogs.length !== 1 ? 's' : ''} registrados</span>
+        </div>
+        <div className="grid grid-cols-7 gap-1.5">
+          {['D','S','T','Q','Q','S','S'].map((d, i) => (
+            <div key={i} className="text-center text-[10px] text-gray-400 font-semibold">{d}</div>
+          ))}
+          {ultimos21.map((data, i) => {
+            const feito = diasFeitos.has(data)
+            const ehHoje = data === hoje
+            return (
+              <div key={i} title={data}
+                className={`h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                  ehHoje
+                    ? feito
+                      ? 'bg-green-500 text-white ring-2 ring-green-300'
+                      : 'bg-rosa-100 text-rosa-600 ring-2 ring-rosa-300'
+                    : feito
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-50 text-gray-300'
+                }`}>
+                {feito ? '✓' : new Date(data + 'T12:00:00').getDate()}
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-2 text-center">
+          Verde = treino feito · Rosa = hoje
+        </p>
+      </div>
+
+      {/* Treino de hoje — destaque com imagem + botão marcar */}
       {treinoHoje && treinoHoje.foco !== 'Descanso Total' && treinoHoje.foco !== 'Descanso Merecido' && treinoHoje.foco !== 'Descanso' && (
         <div className="mb-4 rounded-2xl overflow-hidden relative">
           <img
@@ -950,22 +1071,43 @@ export default function ActionPlan() {
           />
           <div className="absolute inset-0 p-4 flex flex-col justify-end"
             style={{ background: 'linear-gradient(to top, rgba(183,110,121,0.95) 40%, rgba(183,110,121,0.3) 100%)' }}>
-          <div className="flex items-center gap-2 mb-1">
-            <Star size={14} className="text-ouro-300" />
-            <span className="text-xs font-semibold text-white/80 uppercase tracking-wider">Treino de Hoje — {diaHoje}</span>
-          </div>
-          <p className="font-bold text-lg text-white mb-1">{treinoHoje.foco}</p>
-          <div className="flex items-center gap-3 text-sm text-white/80">
-            <span>⏱ {treinoHoje.duracao}</span>
-            <span className="w-px h-3 bg-white/30" />
-            <span>💪 {treinoHoje.intensidade}</span>
-            {treinoHoje.cardio && (
-              <>
+            <div className="flex items-center gap-2 mb-1">
+              <Star size={14} className="text-ouro-300" />
+              <span className="text-xs font-semibold text-white/80 uppercase tracking-wider">Treino de Hoje — {diaHoje}</span>
+            </div>
+            <p className="font-bold text-lg text-white mb-1">{treinoHoje.foco}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-sm text-white/80">
+                <span>⏱ {treinoHoje.duracao}</span>
                 <span className="w-px h-3 bg-white/30" />
-                <span>❤️ {treinoHoje.cardio.duracao} cardio</span>
-              </>
-            )}
-          </div>
+                <span>💪 {treinoHoje.intensidade}</span>
+                {treinoHoje.cardio && (
+                  <>
+                    <span className="w-px h-3 bg-white/30" />
+                    <span>❤️ {treinoHoje.cardio.duracao}</span>
+                  </>
+                )}
+              </div>
+              {/* Botão marcar concluído */}
+              {treinoHojeConcluido ? (
+                <div className="flex items-center gap-1.5 bg-green-400/90 rounded-xl px-3 py-1.5">
+                  <CheckCircle2 size={15} className="text-white" />
+                  <span className="text-xs font-bold text-white">Concluído!</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => marcarTreinoConcluido(treinoHoje.foco, treinoHoje.duracao)}
+                  disabled={marcando}
+                  className="flex items-center gap-1.5 bg-white/90 hover:bg-white rounded-xl px-3 py-1.5 transition-all"
+                >
+                  {marcando
+                    ? <Loader2 size={14} className="animate-spin text-rosa-500" />
+                    : <CheckCircle2 size={15} className="text-rosa-500" />
+                  }
+                  <span className="text-xs font-bold text-rosa-600">Marcar feito</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

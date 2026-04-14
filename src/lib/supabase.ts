@@ -131,6 +131,33 @@ export async function createCommunityPost(post: Record<string, unknown>) {
   return { data, error }
 }
 
+// ── TREINO LOGS ──────────────────────────────────────────────────────────────
+
+export async function saveTreinoLog(log: {
+  user_id: string
+  data: string
+  foco: string
+  duracao: string
+  local: string
+}) {
+  const { data, error } = await supabase
+    .from('treino_logs')
+    .upsert(log, { onConflict: 'user_id,data' })
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function getTreinoLogs(userId: string, limite = 60) {
+  const { data, error } = await supabase
+    .from('treino_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('data', { ascending: false })
+    .limit(limite)
+  return { data, error }
+}
+
 export async function toggleCurtida(postId: string, incremento: number) {
   const { data, error } = await supabase.rpc('incrementar_curtida', {
     post_id: postId,

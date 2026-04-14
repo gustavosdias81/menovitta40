@@ -107,3 +107,13 @@ export interface MacroMeta {
   gorduras: number
   carboidratos: number
 }
+
+export interface TreinoLog {
+  id: string
+  user_id: string
+  data: string           // 'YYYY-MM-DD'
+  foco: string
+  duracao: string
+  local: 'academia' | 'casa'
+  created_at: string
+}
