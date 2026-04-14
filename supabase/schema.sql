@@ -71,6 +71,9 @@ CREATE TABLE IF NOT EXISTS planos_acao (
   meta_gorduras INTEGER DEFAULT 55,
   meta_carboidratos INTEGER DEFAULT 180,
   progresso_notas JSONB DEFAULT '[]',
+  -- Trilha de evolução escolhida pela aluna (retenção de assinantes)
+  trilha_ativa TEXT DEFAULT '8sem' CHECK (trilha_ativa IN ('8sem', '90d', '180d', '360d')),
+  data_inicio_programa DATE DEFAULT CURRENT_DATE,
   ativo BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

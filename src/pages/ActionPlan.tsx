@@ -881,8 +881,21 @@ export default function ActionPlan() {
     setLoading(true)
     const { data } = await supabase
       .from('planos_acao').select('*').eq('user_id', user.id).maybeSingle()
-    if (data) setPlano(data as PlanoAcao)
+    if (data) {
+      setPlano(data as PlanoAcao)
+      // Restaura trilha salva no Supabase
+      if (data.trilha_ativa) setTrilhaAtiva(data.trilha_ativa as TrilhaAtiva)
+    }
     setLoading(false)
+  }
+
+  const salvarTrilha = async (nova: TrilhaAtiva) => {
+    setTrilhaAtiva(nova)
+    if (!user || !plano) return
+    await supabase
+      .from('planos_acao')
+      .update({ trilha_ativa: nova, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
   }
 
   if (loading) {
@@ -1014,7 +1027,7 @@ export default function ActionPlan() {
                     { id: '180d' as TrilhaAtiva, label: '180 dias' },
                     { id: '360d' as TrilhaAtiva, label: '1 ano' },
                   ]).map(t => (
-                    <button key={t.id} onClick={() => setTrilhaAtiva(t.id)}
+                    <button key={t.id} onClick={() => salvarTrilha(t.id)}
                       className={`py-2 rounded-xl text-xs font-bold transition-all ${
                         trilhaAtiva === t.id
                           ? 'bg-rosa-500 text-white shadow-sm'

@@ -61,6 +61,10 @@ export interface PlanoAcao {
   meta_gorduras: number
   meta_carboidratos: number
   progresso_notas: ProgressoNota[]
+  // Trilha de evolução (jornada de longo prazo)
+  trilha_ativa?: '8sem' | '90d' | '180d' | '360d'
+  data_inicio_programa?: string
+  ativo?: boolean
   created_at: string
   updated_at: string
 }
