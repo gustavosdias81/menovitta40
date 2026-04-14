@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getProfile, updateProfile, getPlanoAcao, upsertPlanoAcao, getAnamnese } from '../../lib/supabase'
-import type { Profile, PlanoAcao, AnamneseResponse, FaseMenopausa, Objetivo } from '../../types'
+import {
+  getProfile, updateProfile, getPlanoAcao, upsertPlanoAcao, getAnamnese,
+  getTreinoLogsAdmin, getFoodLogsAdmin, createNotificacao, toggleAtivoAluna
+} from '../../lib/supabase'
+import type { Profile, PlanoAcao, AnamneseResponse, FaseMenopausa, Objetivo, TreinoLog, FoodLog } from '../../types'
 import {
   ArrowLeft, Save, Loader2, User, ClipboardList,
   Dumbbell, Apple, Brain, TrendingUp, FileText,
-  Scale, Ruler, Calendar, Target, Plus
+  Scale, Ruler, Calendar, Target, Plus, MessageSquare,
+  Activity, Send, Wifi, WifiOff
 } from 'lucide-react'
 
 const FASE_LABELS: Record<FaseMenopausa, string> = {
@@ -22,13 +26,30 @@ const OBJETIVO_LABELS: Record<Objetivo, string> = {
   flexibilidade: 'Flexibilidade',
 }
 
+function calcularStreak(logs: TreinoLog[]): number {
+  if (!logs.length) return 0
+  const datas = [...new Set(logs.map(l => l.data))].sort().reverse()
+  const hoje = new Date().toISOString().split('T')[0]
+  let streak = 0
+  let esperado = hoje
+  for (const data of datas) {
+    if (data === esperado) {
+      streak++
+      const d = new Date(esperado + 'T12:00:00')
+      d.setDate(d.getDate() - 1)
+      esperado = d.toISOString().split('T')[0]
+    } else if (data < esperado) break
+  }
+  return streak
+}
+
 export default function EditUser() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [activeTab, setActiveTab] = useState<'perfil' | 'plano' | 'anamnese'>('perfil')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'plano' | 'progresso' | 'anamnese'>('perfil')
 
   // Profile state
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -39,6 +60,8 @@ export default function EditUser() {
   const [altura, setAltura] = useState(0)
   const [faseMenopausa, setFaseMenopausa] = useState<FaseMenopausa>('menopausa')
   const [objetivo, setObjetivo] = useState<Objetivo>('emagrecer')
+  const [ativo, setAtivo] = useState(true)
+  const [togglingAtivo, setTogglingAtivo] = useState(false)
 
   // Plano state
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
@@ -55,9 +78,26 @@ export default function EditUser() {
   // Anamnese state
   const [anamnese, setAnamnese] = useState<AnamneseResponse | null>(null)
 
+  // Progresso state
+  const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
+  const [foodLogs, setFoodLogs] = useState<FoodLog[]>([])
+  const [loadingProgresso, setLoadingProgresso] = useState(false)
+
+  // Notificação para aluna
+  const [notifTitulo, setNotifTitulo] = useState('')
+  const [notifMensagem, setNotifMensagem] = useState('')
+  const [enviandoNotif, setEnviandoNotif] = useState(false)
+  const [notifEnviada, setNotifEnviada] = useState(false)
+
   useEffect(() => {
     if (userId) loadData()
   }, [userId])
+
+  useEffect(() => {
+    if (activeTab === 'progresso' && userId && treinoLogs.length === 0 && foodLogs.length === 0) {
+      loadProgresso()
+    }
+  }, [activeTab])
 
   const loadData = async () => {
     if (!userId) return
@@ -79,6 +119,7 @@ export default function EditUser() {
       setAltura(p.altura || 0)
       setFaseMenopausa((p.fase_menopausa as FaseMenopausa) || 'menopausa')
       setObjetivo((p.objetivo as Objetivo) || 'emagrecer')
+      setAtivo(p.ativo !== false)
     }
 
     if (planoRes.data) {
@@ -101,6 +142,18 @@ export default function EditUser() {
     setLoading(false)
   }
 
+  const loadProgresso = async () => {
+    if (!userId) return
+    setLoadingProgresso(true)
+    const [treinoRes, foodRes] = await Promise.all([
+      getTreinoLogsAdmin(userId),
+      getFoodLogsAdmin(userId, 7),
+    ])
+    if (treinoRes.data) setTreinoLogs(treinoRes.data as TreinoLog[])
+    if (foodRes.data) setFoodLogs(foodRes.data as FoodLog[])
+    setLoadingProgresso(false)
+  }
+
   const handleSaveProfile = async () => {
     if (!userId) return
     setSaving(true)
@@ -120,7 +173,6 @@ export default function EditUser() {
 
     const progressoNotas = plano?.progresso_notas || []
 
-    // Adicionar nova nota se houver
     if (novaNota.trim()) {
       (progressoNotas as Array<{ data: string; nota: string; autor: string }>).push({
         data: new Date().toISOString(),
@@ -149,6 +201,56 @@ export default function EditUser() {
     await loadData()
   }
 
+  const handleToggleAtivo = async () => {
+    if (!userId) return
+    setTogglingAtivo(true)
+    const novoAtivo = !ativo
+    const { error } = await toggleAtivoAluna(userId, novoAtivo)
+    if (!error) {
+      setAtivo(novoAtivo)
+      setProfile(prev => prev ? { ...prev, ativo: novoAtivo } : prev)
+    }
+    setTogglingAtivo(false)
+  }
+
+  const handleEnviarNotificacao = async () => {
+    if (!userId || !notifTitulo.trim() || !notifMensagem.trim()) return
+    setEnviandoNotif(true)
+    await createNotificacao({
+      destinatario_id: userId,
+      titulo: notifTitulo.trim(),
+      mensagem: notifMensagem.trim(),
+      tipo: 'info',
+    })
+    setNotifTitulo('')
+    setNotifMensagem('')
+    setEnviandoNotif(false)
+    setNotifEnviada(true)
+    setTimeout(() => setNotifEnviada(false), 3000)
+  }
+
+  // Calendário 21 dias
+  const ultimos21Dias = () => {
+    const dias: string[] = []
+    for (let i = 20; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      dias.push(d.toISOString().split('T')[0])
+    }
+    return dias
+  }
+
+  const datasComTreino = new Set(treinoLogs.map(l => l.data))
+
+  // Resumo nutricional 7 dias
+  const totalRefeicoes = foodLogs.length
+  const mediaKcal = totalRefeicoes > 0
+    ? Math.round(foodLogs.reduce((acc, f) => acc + (f.calorias || 0), 0) / 7)
+    : 0
+  const mediaProteina = totalRefeicoes > 0
+    ? Math.round(foodLogs.reduce((acc, f) => acc + (f.proteinas || 0), 0) / 7)
+    : 0
+
   if (loading) {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
@@ -167,14 +269,15 @@ export default function EditUser() {
   }
 
   const tabs = [
-    { key: 'perfil', label: 'Perfil', icon: <User size={14} /> },
-    { key: 'plano', label: 'Plano', icon: <ClipboardList size={14} /> },
-    { key: 'anamnese', label: 'Anamnese', icon: <FileText size={14} /> },
-  ] as const
+    { key: 'perfil' as const, label: 'Perfil', icon: <User size={12} /> },
+    { key: 'plano' as const, label: 'Plano', icon: <ClipboardList size={12} /> },
+    { key: 'progresso' as const, label: 'Progresso', icon: <Activity size={12} /> },
+    { key: 'anamnese' as const, label: 'Anamnese', icon: <FileText size={12} /> },
+  ]
 
   return (
     <div className="page-container">
-      {/* Header */}
+      {/* Header melhorado */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => navigate('/admin')}
@@ -186,6 +289,35 @@ export default function EditUser() {
           <h1 className="page-title truncate">{profile.nome || 'Aluna'}</h1>
           <p className="text-xs text-gray-500 truncate">{profile.email}</p>
         </div>
+        {/* Badge ativo + toggle */}
+        <button
+          onClick={handleToggleAtivo}
+          disabled={togglingAtivo}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all ${
+            ativo
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          }`}
+        >
+          {togglingAtivo ? (
+            <Loader2 size={10} className="animate-spin" />
+          ) : ativo ? (
+            <><Wifi size={10} /> Ativa</>
+          ) : (
+            <><WifiOff size={10} /> Suspensa</>
+          )}
+        </button>
+        {/* WhatsApp */}
+        {profile.telefone && (
+          <a
+            href={`https://wa.me/55${profile.telefone.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center"
+          >
+            <MessageSquare size={18} className="text-green-500" />
+          </a>
+        )}
         {saved && (
           <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full font-medium">
             Salvo!
@@ -199,7 +331,7 @@ export default function EditUser() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-semibold transition-all ${
               activeTab === tab.key
                 ? 'bg-white text-rosa-500 shadow-sm'
                 : 'text-gray-500'
@@ -334,7 +466,7 @@ export default function EditUser() {
             <textarea
               value={treinoDesc}
               onChange={e => setTreinoDesc(e.target.value)}
-              placeholder="Descreva o protocolo de treino semanal da aluna...&#10;&#10;Ex: Segunda e Quarta - Treino A (Superior)&#10;Terça e Quinta - Treino B (Inferior)&#10;Sexta - Cardio LISS 40min"
+              placeholder="Descreva o protocolo de treino semanal da aluna..."
               className="input-field min-h-[150px] resize-none"
             />
           </div>
@@ -348,7 +480,7 @@ export default function EditUser() {
             <textarea
               value={nutricaoDesc}
               onChange={e => setNutricaoDesc(e.target.value)}
-              placeholder="Descreva o protocolo nutricional da aluna...&#10;&#10;Ex: Café da manhã: 30g proteína + carboidrato complexo&#10;Almoço: Prato equilibrado com proteína magra&#10;Lanche: Frutas + oleaginosas"
+              placeholder="Descreva o protocolo nutricional da aluna..."
               className="input-field min-h-[150px] resize-none"
             />
           </div>
@@ -362,7 +494,7 @@ export default function EditUser() {
             <textarea
               value={mentalidadeDesc}
               onChange={e => setMentalidadeDesc(e.target.value)}
-              placeholder="Orientações de mentalidade e bem-estar...&#10;&#10;Ex: Meditação guiada 10min pela manhã&#10;Journaling noturno (3 gratidões)&#10;Caminhada na natureza 1x por semana"
+              placeholder="Orientações de mentalidade e bem-estar..."
               className="input-field min-h-[120px] resize-none"
             />
           </div>
@@ -381,7 +513,7 @@ export default function EditUser() {
             />
           </div>
 
-          {/* Adicionar nota de progresso */}
+          {/* Nova nota de progresso */}
           <div className="card">
             <h2 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
               <Plus size={16} className="text-rosa-500" />
@@ -422,6 +554,151 @@ export default function EditUser() {
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save size={18} /> Salvar Plano de Ação</>}
           </button>
+        </div>
+      )}
+
+      {/* TAB: Progresso */}
+      {activeTab === 'progresso' && (
+        <div className="space-y-4">
+          {loadingProgresso ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-rosa-500 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Streak */}
+              <div className="card bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100">
+                <div className="flex items-center gap-4">
+                  <div className="text-4xl">🔥</div>
+                  <div>
+                    <p className="text-3xl font-bold text-orange-500">{calcularStreak(treinoLogs)}</p>
+                    <p className="text-sm text-orange-400 font-medium">dias consecutivos de treino</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-xs text-gray-400">Total treinos</p>
+                    <p className="text-xl font-bold text-gray-700">{treinoLogs.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendário 21 dias */}
+              <div className="card">
+                <h2 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+                  <Calendar size={16} className="text-rosa-500" />
+                  Últimos 21 Dias
+                </h2>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {ultimos21Dias().map(dia => {
+                    const treinou = datasComTreino.has(dia)
+                    const label = new Date(dia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit' })
+                    return (
+                      <div
+                        key={dia}
+                        className={`aspect-square rounded-xl flex flex-col items-center justify-center text-[10px] font-semibold ${
+                          treinou
+                            ? 'bg-green-400 text-white'
+                            : 'bg-gray-100 text-gray-400'
+                        }`}
+                      >
+                        {label}
+                        {treinou && <span className="text-[8px]">✓</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Resumo nutricional 7 dias */}
+              <div className="card">
+                <h2 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+                  <Apple size={16} className="text-green-500" />
+                  Nutrição — Últimos 7 Dias
+                </h2>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xl font-bold text-gray-700">{totalRefeicoes}</p>
+                    <p className="text-[10px] text-gray-400">Refeições registradas</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-3">
+                    <p className="text-xl font-bold text-orange-500">{mediaKcal}</p>
+                    <p className="text-[10px] text-orange-400">Kcal/dia (média)</p>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3">
+                    <p className="text-xl font-bold text-red-500">{mediaProteina}g</p>
+                    <p className="text-[10px] text-red-400">Proteína/dia (média)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Últimas refeições */}
+              {foodLogs.length > 0 && (
+                <div className="card">
+                  <h2 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+                    <Activity size={16} className="text-purple-500" />
+                    Últimas Refeições
+                  </h2>
+                  <div className="space-y-2">
+                    {foodLogs.slice(0, 5).map(f => (
+                      <div key={f.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 truncate">{f.descricao || 'Refeição'}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {new Date(f.data + 'T12:00:00').toLocaleDateString('pt-BR')} · {f.refeicao?.replace('_', ' ')}
+                          </p>
+                        </div>
+                        <span className="text-xs font-semibold text-orange-500 flex-shrink-0">
+                          {f.calorias} kcal
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Enviar notificação para aluna */}
+              <div className="card space-y-3">
+                <h2 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                  <Send size={16} className="text-rosa-500" />
+                  Enviar Notificação para {profile.nome?.split(' ')[0] || 'Aluna'}
+                </h2>
+                <div>
+                  <label className="label-field">Título</label>
+                  <input
+                    type="text"
+                    value={notifTitulo}
+                    onChange={e => setNotifTitulo(e.target.value)}
+                    placeholder="Ex: Parabéns pelo treino!"
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label-field">Mensagem</label>
+                  <textarea
+                    value={notifMensagem}
+                    onChange={e => setNotifMensagem(e.target.value)}
+                    placeholder="Escreva uma mensagem de incentivo..."
+                    className="input-field min-h-[80px] resize-none"
+                  />
+                </div>
+                {notifEnviada && (
+                  <p className="text-xs text-green-600 bg-green-50 rounded-xl px-3 py-2 text-center font-medium">
+                    Notificação enviada com sucesso!
+                  </p>
+                )}
+                <button
+                  onClick={handleEnviarNotificacao}
+                  disabled={enviandoNotif || !notifTitulo.trim() || !notifMensagem.trim()}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  {enviandoNotif ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <><Send size={16} /> Enviar</>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

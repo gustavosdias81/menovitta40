@@ -1,5 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { User, ClipboardList, Camera, Users, Settings } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { getNotificacoes, marcarNotificacaoLida } from '../lib/supabase'
+import type { Notificacao } from '../types'
 
 const NAV_ITEMS = [
   { path: '/perfil', label: 'Perfil', icon: User },
@@ -12,9 +16,71 @@ const NAV_ITEMS = [
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
+
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
+  const [modalNotif, setModalNotif] = useState<Notificacao | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+
+    const verificarNotificacoes = async () => {
+      const { data } = await getNotificacoes(user.id)
+      if (data && data.length > 0) {
+        const lista = data as Notificacao[]
+        setNotificacoes(lista)
+        setModalNotif(lista[0])
+      }
+    }
+
+    verificarNotificacoes()
+  }, [user])
+
+  const handleEntendido = async () => {
+    if (!modalNotif) return
+    await marcarNotificacaoLida(modalNotif.id)
+    const restante = notificacoes.filter(n => n.id !== modalNotif.id)
+    setNotificacoes(restante)
+    setModalNotif(restante.length > 0 ? restante[0] : null)
+  }
+
+  const temNotificacoes = notificacoes.length > 0
 
   return (
     <div className="min-h-screen bg-offwhite">
+      {/* Modal de notificação */}
+      {modalNotif && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-safe">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 mb-6 animate-slide-up">
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                modalNotif.tipo === 'treino' ? 'bg-orange-100 text-orange-500' :
+                modalNotif.tipo === 'nutricao' ? 'bg-green-100 text-green-500' :
+                modalNotif.tipo === 'motivacao' ? 'bg-purple-100 text-purple-500' :
+                'bg-blue-100 text-blue-500'
+              }`}>
+                <span className="text-lg">
+                  {modalNotif.tipo === 'treino' ? '💪' :
+                   modalNotif.tipo === 'nutricao' ? '🥗' :
+                   modalNotif.tipo === 'motivacao' ? '✨' : 'ℹ️'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800 text-sm">{modalNotif.titulo}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{new Date(modalNotif.created_at).toLocaleDateString('pt-BR')}</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">{modalNotif.mensagem}</p>
+            <button
+              onClick={handleEntendido}
+              className="btn-primary w-full"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Page content */}
       <main className="pb-20">
         <Outlet />
@@ -27,12 +93,13 @@ export default function Layout() {
             const isActive = location.pathname === item.path
             const Icon = item.icon
             const isScanner = item.path === '/scanner'
+            const isConfig = item.path === '/configuracoes'
 
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`bottom-nav-item flex-1 py-2.5 ${
+                className={`bottom-nav-item flex-1 py-2.5 relative ${
                   isActive ? 'bottom-nav-active' : 'bottom-nav-inactive'
                 }`}
               >
@@ -45,7 +112,12 @@ export default function Layout() {
                     <Icon size={20} />
                   </div>
                 ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <div className="relative inline-flex">
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                    {isConfig && temNotificacoes && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                    )}
+                  </div>
                 )}
                 <span className={`text-[10px] ${isActive ? 'font-semibold' : ''}`}>
                   {item.label}

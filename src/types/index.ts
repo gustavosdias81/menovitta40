@@ -17,8 +17,19 @@ export interface Profile {
   is_admin: boolean
   quiz_completo: boolean
   foto_url?: string
+  ativo?: boolean
   created_at: string
   updated_at: string
+}
+
+export interface Notificacao {
+  id: string
+  destinatario_id: string | null
+  titulo: string
+  mensagem: string
+  tipo: 'info' | 'treino' | 'nutricao' | 'motivacao'
+  lida: boolean
+  created_at: string
 }
 
 export interface AnamneseResponse {

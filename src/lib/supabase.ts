@@ -158,6 +158,76 @@ export async function getTreinoLogs(userId: string, limite = 60) {
   return { data, error }
 }
 
+// ── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
+
+export async function getNotificacoes(userId: string) {
+  const { data, error } = await supabase
+    .from('notificacoes')
+    .select('*')
+    .or(`destinatario_id.eq.${userId},destinatario_id.is.null`)
+    .eq('lida', false)
+    .order('created_at', { ascending: false })
+  return { data, error }
+}
+
+export async function createNotificacao(notif: { destinatario_id?: string | null; titulo: string; mensagem: string; tipo: string }) {
+  const { data, error } = await supabase
+    .from('notificacoes')
+    .insert(notif)
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function marcarNotificacaoLida(id: string) {
+  const { error } = await supabase
+    .from('notificacoes')
+    .update({ lida: true })
+    .eq('id', id)
+  return { error }
+}
+
+export async function getNotificacoesAdmin(limit = 10) {
+  const { data, error } = await supabase
+    .from('notificacoes')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return { data, error }
+}
+
+export async function getTreinoLogsAdmin(userId: string) {
+  const { data, error } = await supabase
+    .from('treino_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('data', { ascending: false })
+    .limit(60)
+  return { data, error }
+}
+
+export async function getFoodLogsAdmin(userId: string, days = 7) {
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  const { data, error } = await supabase
+    .from('food_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('data', from.toISOString().split('T')[0])
+    .order('created_at', { ascending: false })
+  return { data, error }
+}
+
+export async function toggleAtivoAluna(userId: string, ativo: boolean) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ativo, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+  return { error }
+}
+
+// ── CURTIDAS ──────────────────────────────────────────────────────────────────
+
 export async function toggleCurtida(postId: string, incremento: number) {
   const { data, error } = await supabase.rpc('incrementar_curtida', {
     post_id: postId,
