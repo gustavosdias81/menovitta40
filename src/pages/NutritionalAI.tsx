@@ -80,54 +80,48 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   return JSON.parse(clean) as AnaliseResultado
 }
 
-// ── Sugestões de refeições ────────────────────────────────────────────────────
-async function gerarSugestoesIA(
-  faltamCal: number, faltamProt: number, faltamGord: number, faltamCarb: number,
-  faseMenopausa: string
-): Promise<Sugestao[]> {
+// ── Sugestão de refeição (1 receita) ─────────────────────────────────────────
+async function gerarReceitaIA(
+  faltamCal: number, faltamProt: number, faseMenopausa: string
+): Promise<Sugestao> {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
+  const contexto = faltamCal > 100
+    ? `A aluna ainda precisa de ${Math.round(faltamCal)} kcal e ${Math.round(faltamProt)}g de proteína hoje.`
+    : `A aluna já atingiu as metas do dia. Sugira um lanche leve e saudável.`
+
   const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
-A aluna ainda precisa consumir hoje:
-- ${Math.round(faltamCal)} kcal
-- ${Math.round(faltamProt)}g de proteína
-- ${Math.round(faltamGord)}g de gordura
-- ${Math.round(faltamCarb)}g de carboidrato
+${contexto}
 
-Sugira 3 refeições rápidas, saborosas e saudáveis para completar essas metas.
-Priorize alimentos anti-inflamatórios, ricos em proteína e adequados à menopausa.
-As receitas devem ser simples (max 15 min de preparo), com ingredientes acessíveis no Brasil.
+Sugira UMA receita rápida, saborosa e saudável, priorize proteínas e anti-inflamatórios.
+Ingredientes acessíveis no Brasil, máx 15 min de preparo.
 
-Retorne APENAS um JSON array válido (sem markdown, sem \`\`\`json) com este formato:
-[
-  {
-    "nome": "Nome apetitoso da refeição",
-    "descricao": "Descrição curta e apetitosa em 1 frase",
-    "calorias": <número inteiro>,
-    "proteinas": <número com 1 decimal>,
-    "gorduras": <número com 1 decimal>,
-    "carboidratos": <número com 1 decimal>,
-    "tempo_preparo": "X min",
-    "ingredientes": ["quantidade + ingrediente", ...],
-    "modo_preparo": ["Passo 1 curto", "Passo 2 curto", "Passo 3 curto"],
-    "imagem_termo": "food search term in English (e.g. 'grilled salmon salad')"
-  }
-]`
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json):
+{
+  "nome": "Nome apetitoso",
+  "descricao": "Descrição curta em 1 frase",
+  "calorias": <número inteiro>,
+  "proteinas": <número com 1 decimal>,
+  "gorduras": <número com 1 decimal>,
+  "carboidratos": <número com 1 decimal>,
+  "tempo_preparo": "X min",
+  "ingredientes": ["quantidade + ingrediente", ...],
+  "modo_preparo": ["Passo 1", "Passo 2", "Passo 3"],
+  "imagem_termo": "food search term in English"
+}`
 
-  // Retry automático: tenta até 2 vezes em caso de falha
-  let lastErr: unknown
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const result = await model.generateContent(prompt)
-      const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-      return JSON.parse(clean) as Sugestao[]
+      const text = result.response.text().trim()
+      const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+      return JSON.parse(clean) as Sugestao
     } catch (err) {
-      lastErr = err
-      console.warn(`IA Nutricional: tentativa ${attempt + 1} falhou`, err)
       if (attempt < 1) await new Promise(r => setTimeout(r, 1500))
+      else throw err
     }
   }
-  throw lastErr
+  throw new Error('Failed after 2 attempts')
 }
 
 // ── Helper: cor da barra de progresso ────────────────────────────────────────
@@ -183,10 +177,9 @@ export default function NutritionalAI() {
   const [plano,      setPlano]      = useState<PlanoAcao | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
-  // Sugestões IA
-  const [sugestoes,        setSugestoes]        = useState<Sugestao[] | null>(null)
-  const [loadingSugestoes, setLoadingSugestoes] = useState(false)
-  const [sugestaoAberta,   setSugestaoAberta]   = useState<number | null>(null)
+  // Sugestão IA
+  const [sugestao,         setSugestao]         = useState<Sugestao | null>(null)
+  const [loadingSugestao,  setLoadingSugestao]  = useState(false)
   const [sugestaoError,    setSugestaoError]    = useState<string | null>(null)
 
   // Tabs
@@ -273,21 +266,25 @@ export default function NutritionalAI() {
     setImagePreview(null); setImageFile(null); setResultado(null); setSaved(false); setScanError(null)
   }
 
-  // ── Sugestões handler ────────────────────────────────────────────────────────
-  const handleGerarSugestoes = async () => {
+  // ── Sugestão handler ─────────────────────────────────────────────────────────
+  const handleGerarSugestao = async () => {
     if (!import.meta.env.VITE_GEMINI_API_KEY) {
       setSugestaoError('Chave da IA não configurada. Adicione VITE_GEMINI_API_KEY no Vercel.')
       return
     }
-    setLoadingSugestoes(true); setSugestaoError(null); setSugestoes(null); setSugestaoAberta(null)
+    setLoadingSugestao(true)
+    setSugestaoError(null)
+    setSugestao(null)
     try {
       const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
-      const s = await gerarSugestoesIA(faltam.calorias, faltam.proteinas, faltam.gorduras, faltam.carboidratos, fase)
-      setSugestoes(s)
+      const s = await gerarReceitaIA(faltam.calorias, faltam.proteinas, fase)
+      setSugestao(s)
     } catch (err) {
-      console.error('IA Nutricional sugestões error:', err)
-      setSugestaoError('Erro ao gerar sugestões. Verifique sua conexão e tente novamente.')
-    } finally { setLoadingSugestoes(false) }
+      console.error('IA Nutricional error:', err)
+      setSugestaoError('Erro ao gerar sugestão. Tente novamente.')
+    } finally {
+      setLoadingSugestao(false)
+    }
   }
 
   const pct = (v: number, total: number) => Math.min(100, Math.round((v / total) * 100))
@@ -566,13 +563,13 @@ export default function NutritionalAI() {
                 </div>
 
                 <button
-                  onClick={handleGerarSugestoes}
-                  disabled={loadingSugestoes}
+                  onClick={handleGerarSugestao}
+                  disabled={loadingSugestao}
                   className="btn-gold w-full flex items-center justify-center gap-2"
                 >
-                  {loadingSugestoes
-                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando sugestões com IA...</>
-                    : <><ChefHat size={18} /> {sugestoes ? 'Gerar novas sugestões' : 'Sugerir o que comer agora'}</>
+                  {loadingSugestao
+                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando sugestão com IA...</>
+                    : <><ChefHat size={18} /> {sugestao ? 'Gerar nova sugestão' : 'Sugerir o que comer agora'}</>
                   }
                 </button>
 
@@ -585,9 +582,9 @@ export default function NutritionalAI() {
             )}
           </div>
 
-          {/* Cards de sugestões */}
-          {sugestoes && sugestoes.map((s, i) => (
-            <div key={i} className="card overflow-hidden p-0">
+          {/* Card de sugestão */}
+          {sugestao && (() => { const s = sugestao; return (
+            <div className="card overflow-hidden p-0">
               {/* Imagem */}
               <div className="relative h-44 overflow-hidden">
                 <img
@@ -601,7 +598,7 @@ export default function NutritionalAI() {
                 <div className="absolute inset-0 flex flex-col justify-end p-4"
                   style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%)' }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-ouro-400 text-white px-2 py-0.5 rounded-full font-semibold">Sugestão {i + 1}</span>
+                    <span className="text-[10px] bg-ouro-400 text-white px-2 py-0.5 rounded-full font-semibold">Sugestão IA</span>
                     <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Clock size={10} /> {s.tempo_preparo}
                     </span>
@@ -627,50 +624,40 @@ export default function NutritionalAI() {
                   ))}
                 </div>
 
-                {/* Toggle receita */}
-                <button
-                  onClick={() => setSugestaoAberta(sugestaoAberta === i ? null : i)}
-                  className="w-full flex items-center justify-between text-sm font-semibold text-rosa-500 py-2 border-t border-gray-100"
-                >
-                  <span className="flex items-center gap-2"><ChefHat size={15} /> Ver Receita Completa</span>
-                  {sugestaoAberta === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-
-                {sugestaoAberta === i && (
-                  <div className="mt-3 space-y-4">
-                    {/* Ingredientes */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                        <Utensils size={13} className="text-rosa-400" /> Ingredientes
-                      </p>
-                      <ul className="space-y-1">
-                        {s.ingredientes.map((ing, j) => (
-                          <li key={j} className="text-xs text-gray-600 flex items-start gap-2">
-                            <span className="text-rosa-400 mt-0.5 shrink-0">•</span> {ing}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Modo de preparo */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                        <ChefHat size={13} className="text-rosa-400" /> Modo de Preparo
-                      </p>
-                      <ol className="space-y-2">
-                        {s.modo_preparo.map((passo, j) => (
-                          <li key={j} className="flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-rosa-100 text-rosa-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
-                            <p className="text-xs text-gray-600">{passo}</p>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
+                {/* Receita completa sempre visível */}
+                <div className="border-t border-gray-100 pt-3 space-y-4">
+                  {/* Ingredientes */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <Utensils size={13} className="text-rosa-400" /> Ingredientes
+                    </p>
+                    <ul className="space-y-1">
+                      {s.ingredientes.map((ing, j) => (
+                        <li key={j} className="text-xs text-gray-600 flex items-start gap-2">
+                          <span className="text-rosa-400 mt-0.5 shrink-0">•</span> {ing}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                )}
+
+                  {/* Modo de preparo */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <ChefHat size={13} className="text-rosa-400" /> Modo de Preparo
+                    </p>
+                    <ol className="space-y-2">
+                      {s.modo_preparo.map((passo, j) => (
+                        <li key={j} className="flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-rosa-100 text-rosa-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
+                          <p className="text-xs text-gray-600">{passo}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
+          )})()}
         </div>
       )}
 

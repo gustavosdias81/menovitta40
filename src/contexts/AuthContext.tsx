@@ -15,6 +15,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
   setProfile: React.Dispatch<React.SetStateAction<Profile | null>>
+  marcarQuizCompleto: () => void
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [quizDone, setQuizDone] = useState(false)
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -44,6 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id)
+  }
+
+  useEffect(() => {
+    if (user?.id) {
+      const localDone = localStorage.getItem(`quiz_done_${user.id}`) === '1'
+      if (localDone) setQuizDone(true)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (profile?.quiz_completo === true) setQuizDone(true)
+  }, [profile?.quiz_completo])
+
+  const marcarQuizCompleto = () => {
+    if (user?.id) localStorage.setItem(`quiz_done_${user.id}`, '1')
+    setQuizDone(true)
   }
 
   useEffect(() => {
@@ -126,8 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, session, profile, loading,
       isAdmin: profile?.is_admin ?? false,
-      quizCompleto: profile?.quiz_completo === true || localStorage.getItem(`quiz_done_${user?.id}`) === '1',
-      signIn, signUp, signOut, refreshProfile, setProfile,
+      quizCompleto: quizDone,
+      signIn, signUp, signOut, refreshProfile, setProfile, marcarQuizCompleto,
     }}>
       {children}
     </AuthContext.Provider>

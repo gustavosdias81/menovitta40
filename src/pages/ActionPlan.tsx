@@ -10,6 +10,40 @@ import {
   PlayCircle, CheckCircle2, Calendar
 } from 'lucide-react'
 
+// ── Cache: exercise name → YouTube video ID ───────────────────────────────────
+const videoCache: Record<string, string> = {}
+
+async function abrirVideoExercicio(exercicio: string) {
+  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
+
+  // Check in-memory cache
+  if (videoCache[exercicio]) {
+    window.open(`https://www.youtube.com/watch?v=${videoCache[exercicio]}`, '_blank')
+    return
+  }
+
+  if (apiKey) {
+    try {
+      const query = encodeURIComponent(`${exercicio} como fazer exercício academia corretamente`)
+      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
+      const res = await fetch(url)
+      const data = await res.json()
+      const videoId = data.items?.[0]?.id?.videoId
+      if (videoId) {
+        videoCache[exercicio] = videoId
+        window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
+        return
+      }
+    } catch (_e) {
+      // fall through to search
+    }
+  }
+
+  // Fallback: open YouTube search
+  const query = encodeURIComponent(`${exercicio} como fazer academia corretamente`)
+  window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank')
+}
+
 // ── TIPOS ─────────────────────────────────────────────────────────────────────
 type Exercicio = { nome: string; series: string; obs?: string }
 type DiaDetalhe = {
@@ -1272,7 +1306,6 @@ export default function ActionPlan() {
                             <div className="space-y-3">
                               {exercicios.map((ex, j) => {
                                 const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
-                                const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.nome + ' como fazer corretamente academia')}`
                                 return (
                                   <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
                                     {/* Nome + séries */}
@@ -1284,16 +1317,16 @@ export default function ActionPlan() {
                                     {ex.obs && <p className="text-xs text-gray-400 mb-2">{ex.obs}</p>}
                                     {/* Botão YouTube */}
                                     {!isDescanso && (
-                                      <a
-                                        href={youtubeUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={e => e.stopPropagation()}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          abrirVideoExercicio(ex.nome)
+                                        }}
                                         className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
                                       >
                                         <PlayCircle size={17} />
                                         ▶ Ver demonstração no YouTube
-                                      </a>
+                                      </button>
                                     )}
                                   </div>
                                 )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getCommunityPosts, createCommunityPost, getArtigos, moderarPost, deleteCommunityPost } from '../lib/supabase'
 import type { CommunityPost, Artigo } from '../types'
@@ -199,7 +199,7 @@ export default function Community() {
 
   const [activeTab, setActiveTab] = useState<'feed' | 'news'>('news')
   const [posts, setPosts] = useState<CommunityPost[]>([])
-  const [artigos, setArtigos] = useState<Artigo[]>([])
+  const [artigos, setArtigos] = useState<Artigo[]>(ARTIGOS_INICIAIS as unknown as Artigo[])
   const [loading, setLoading] = useState(false)
   const [loadingArtigos, setLoadingArtigos] = useState(false)
   const [showNewPost, setShowNewPost] = useState(false)
@@ -208,6 +208,8 @@ export default function Community() {
   const [posting, setPosting] = useState(false)
   const [artigoAberto, setArtigoAberto] = useState<Artigo | typeof ARTIGOS_INICIAIS[0] | null>(null)
   const [moderando, setModerando] = useState<string | null>(null)
+  const [postFotoUrl, setPostFotoUrl] = useState<string>('')
+  const postFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (activeTab === 'feed') loadPosts()
@@ -252,8 +254,10 @@ export default function Community() {
       autor_foto: profile.foto_url,
       tipo: newTipo,
       texto: newText.trim(),
+      foto_url: postFotoUrl || undefined,
     })
     setNewText('')
+    setPostFotoUrl('')
     setShowNewPost(false)
     setPosting(false)
     await loadPosts()
@@ -293,8 +297,6 @@ export default function Community() {
     return new Date(dateStr).toLocaleDateString('pt-BR')
   }
 
-  // Usa artigos do banco OU os iniciais como fallback
-  const artigosExibidos = artigos.length > 0 ? artigos : ARTIGOS_INICIAIS as unknown as Artigo[]
 
   return (
     <div className="page-container">
@@ -366,7 +368,7 @@ export default function Community() {
               <Loader2 className="w-8 h-8 text-rosa-500 animate-spin" />
             </div>
           ) : (
-            artigosExibidos.map((artigo, idx) => (
+            artigos.map((artigo, idx) => (
               <button
                 key={(artigo as Artigo).id || idx}
                 onClick={() => setArtigoAberto(artigo)}
@@ -441,9 +443,43 @@ export default function Community() {
                   className="input-field min-h-[120px] resize-none mb-3"
                   maxLength={500}
                 />
+                <input
+                  ref={postFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 500 * 1024) {
+                      alert('Foto muito grande. Máximo 500KB.')
+                      return
+                    }
+                    const reader = new FileReader()
+                    reader.onload = (ev) => setPostFotoUrl(ev.target?.result as string)
+                    reader.readAsDataURL(file)
+                  }}
+                />
+                {postFotoUrl && (
+                  <div className="relative mb-3">
+                    <img src={postFotoUrl} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                    <button
+                      type="button"
+                      onClick={() => setPostFotoUrl('')}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center"
+                    >
+                      <X size={12} className="text-white" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
-                  <button className="flex items-center gap-2 text-gray-400 text-sm">
-                    <Image size={18} /> Foto (em breve)
+                  <button
+                    type="button"
+                    onClick={() => postFileRef.current?.click()}
+                    className="flex items-center gap-2 text-gray-500 text-sm font-medium hover:text-rosa-500 transition-colors"
+                  >
+                    <Image size={18} /> {postFotoUrl ? '✓ Foto selecionada' : 'Adicionar foto'}
                   </button>
                   <button
                     onClick={handlePost}
