@@ -11,7 +11,12 @@ import {
 } from 'lucide-react'
 
 // ── IA Nutricional Menovitta ──────────────────────────────────────────────────
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
+// Inicialização lazy — evita erro se chave não estiver definida no build
+function getGenAI() {
+  const key = import.meta.env.VITE_GEMINI_API_KEY
+  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
+  return new GoogleGenerativeAI(key)
+}
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface AnaliseResultado {
@@ -41,7 +46,8 @@ interface Sugestao {
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const genAI = getGenAI()
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -52,6 +58,14 @@ async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
     })
 
   const base64 = await toBase64(imageFile)
+
+  // Normaliza o mime type para tipos aceitos pela API
+  const mimeRaw = imageFile.type || 'image/jpeg'
+  const mimeType = (
+    mimeRaw === 'image/heif' || mimeRaw === 'image/heic'
+      ? 'image/jpeg'
+      : mimeRaw
+  ) as 'image/jpeg' | 'image/png' | 'image/webp'
 
   const prompt = `Analise esta foto de refeição e retorne um JSON com análise nutricional estimada.
 Contexto: App de saúde para mulheres 40+ na menopausa que buscam emagrecer.
@@ -73,7 +87,7 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 
   const result = await model.generateContent([
     prompt,
-    { inlineData: { mimeType: imageFile.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic', data: base64 } },
+    { inlineData: { mimeType, data: base64 } },
   ])
 
   const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
@@ -84,7 +98,8 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 async function gerarReceitaIA(
   faltamCal: number, faltamProt: number, faseMenopausa: string
 ): Promise<Sugestao> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const genAI = getGenAI()
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
   const contexto = faltamCal > 100
     ? `A aluna ainda precisa de ${Math.round(faltamCal)} kcal e ${Math.round(faltamProt)}g de proteína hoje.`
@@ -243,8 +258,18 @@ export default function NutritionalAI() {
       const r = await analisarPratoIA(imageFile)
       if (r.confianca === 0) setScanError('Não consegui identificar alimentos. Tente uma foto mais próxima do prato.')
       else setResultado(r)
-    } catch {
-      setScanError('Erro ao analisar. Verifique sua conexão e tente novamente.')
+    } catch (err: unknown) {
+      console.error('Erro análise IA:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('VITE_GEMINI_API_KEY')) {
+        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY nas variáveis de ambiente.')
+      } else if (msg.includes('API_KEY') || msg.includes('403') || msg.includes('401')) {
+        setScanError('Chave Gemini inválida ou sem permissão. Verifique a chave no Vercel.')
+      } else if (msg.includes('quota') || msg.includes('429')) {
+        setScanError('Limite de requisições atingido. Aguarde alguns minutos e tente novamente.')
+      } else {
+        setScanError(`Erro ao analisar: ${msg.slice(0, 100)}`)
+      }
     } finally { setAnalyzing(false) }
   }
 
@@ -279,9 +304,18 @@ export default function NutritionalAI() {
       const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
       const s = await gerarReceitaIA(faltam.calorias, faltam.proteinas, fase)
       setSugestao(s)
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('IA Nutricional error:', err)
-      setSugestaoError('Erro ao gerar sugestão. Tente novamente.')
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('VITE_GEMINI_API_KEY')) {
+        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY.')
+      } else if (msg.includes('API_KEY') || msg.includes('403') || msg.includes('401')) {
+        setSugestaoError('Chave Gemini inválida. Verifique no Vercel → Environment Variables.')
+      } else if (msg.includes('quota') || msg.includes('429')) {
+        setSugestaoError('Limite atingido. Aguarde alguns minutos.')
+      } else {
+        setSugestaoError(`Erro: ${msg.slice(0, 80)}. Tente novamente.`)
+      }
     } finally {
       setLoadingSugestao(false)
     }
