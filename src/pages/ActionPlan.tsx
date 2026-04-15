@@ -7,39 +7,10 @@ import {
   TrendingUp, Loader2, Flame, Droplets,
   Moon, Heart, ChevronDown, ChevronUp, Star,
   Home, Building2, Zap, Trophy, Lock, Check,
-  PlayCircle, CheckCircle2, Calendar
+  PlayCircle, CheckCircle2, Calendar, X
 } from 'lucide-react'
 
-// ── Cache: exercise name → YouTube video ID ───────────────────────────────────
-const videoCache: Record<string, string> = {}
-
-// Pré-carrega o video ID em background (sem bloquear o clique)
-async function prefetchVideoId(exercicio: string) {
-  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
-  if (!apiKey || videoCache[exercicio]) return
-  try {
-    const q = encodeURIComponent(`${exercicio} como fazer exercício academia passo a passo`)
-    const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${q}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
-    const res = await fetch(url)
-    const data = await res.json()
-    const videoId = data.items?.[0]?.id?.videoId
-    if (videoId) videoCache[exercicio] = videoId
-  } catch { /* silencia */ }
-}
-
-// SÍNCRONO — window.open() só funciona em mobile se chamado sem await
-function abrirVideoExercicio(exercicio: string) {
-  if (videoCache[exercicio]) {
-    // Já temos o ID: abre direto no vídeo
-    window.open(`https://www.youtube.com/watch?v=${videoCache[exercicio]}`, '_blank')
-  } else {
-    // Abre busca filtrada só por vídeos (sp= filtra canais/playlists)
-    const q = encodeURIComponent(`${exercicio} como fazer academia corretamente`)
-    window.open(`https://www.youtube.com/results?search_query=${q}&sp=EgIQAQ%3D%3D`, '_blank')
-    // Pré-carrega ID para o próximo clique já abrir direto
-    prefetchVideoId(exercicio)
-  }
-}
+// (lógica de vídeo movida para dentro do componente)
 
 // ── TIPOS ─────────────────────────────────────────────────────────────────────
 type Exercicio = { nome: string; series: string; obs?: string }
@@ -938,6 +909,29 @@ export default function ActionPlan() {
   const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
   const [marcando, setMarcando] = useState(false)
 
+  // Modal de vídeo embutido
+  const [videoModal, setVideoModal] = useState<{ nome: string; videoId: string | null; erro: boolean } | null>(null)
+
+  const abrirVideo = async (exercicio: string) => {
+    setVideoModal({ nome: exercicio, videoId: null, erro: false })
+    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
+    if (!apiKey) { setVideoModal({ nome: exercicio, videoId: null, erro: true }); return }
+    try {
+      const q = encodeURIComponent(`${exercicio} como fazer exercício passo a passo`)
+      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${q}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
+      const res = await fetch(url)
+      const data = await res.json()
+      const videoId = data.items?.[0]?.id?.videoId
+      if (videoId) {
+        setVideoModal({ nome: exercicio, videoId, erro: false })
+      } else {
+        setVideoModal({ nome: exercicio, videoId: null, erro: true })
+      }
+    } catch {
+      setVideoModal({ nome: exercicio, videoId: null, erro: true })
+    }
+  }
+
   useEffect(() => {
     if (user) loadData()
   }, [user])
@@ -1303,8 +1297,6 @@ export default function ActionPlan() {
                             <div className="space-y-3">
                               {exercicios.map((ex, j) => {
                                 const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
-                                // Pré-carrega o ID ao exibir os exercícios
-                                if (!isDescanso) prefetchVideoId(ex.nome)
                                 return (
                                   <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
                                     {/* Nome + séries */}
@@ -1319,12 +1311,12 @@ export default function ActionPlan() {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation()
-                                          abrirVideoExercicio(ex.nome)
+                                          abrirVideo(ex.nome)
                                         }}
                                         className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
                                       >
                                         <PlayCircle size={17} />
-                                        ▶ Ver demonstração no YouTube
+                                        ▶ Ver demonstração
                                       </button>
                                     )}
                                   </div>
@@ -1599,6 +1591,54 @@ export default function ActionPlan() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ═══ MODAL VÍDEO YOUTUBE ═══ */}
+      {videoModal && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-black/90">
+            <button
+              onClick={() => setVideoModal(null)}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 flex-shrink-0"
+            >
+              <X size={18} className="text-white" />
+            </button>
+            <p className="text-white text-sm font-semibold line-clamp-1 flex-1">{videoModal.nome}</p>
+          </div>
+
+          {/* Conteúdo */}
+          {videoModal.videoId ? (
+            /* iframe do YouTube — ocupa a tela toda */
+            <iframe
+              className="flex-1 w-full"
+              src={`https://www.youtube.com/embed/${videoModal.videoId}?autoplay=1&rel=0`}
+              title={videoModal.nome}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : videoModal.erro ? (
+            /* Vídeo não encontrado */
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+              <PlayCircle size={48} className="text-white/30" />
+              <p className="text-white/60 text-sm text-center">
+                Não foi possível encontrar o vídeo.{'\n'}Tente novamente.
+              </p>
+              <button
+                onClick={() => setVideoModal(null)}
+                className="px-6 py-2.5 bg-white/10 rounded-full text-white text-sm font-medium"
+              >
+                Fechar
+              </button>
+            </div>
+          ) : (
+            /* Carregando */
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <Loader2 size={36} className="text-white animate-spin" />
+              <p className="text-white/60 text-sm">Carregando vídeo...</p>
+            </div>
+          )}
         </div>
       )}
     </div>
