@@ -30,12 +30,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle()
-      if (data) setProfile(data as Profile)
+
+      if (data) {
+        setProfile(data as Profile)
+      } else if (!error) {
+        // Nenhuma linha encontrada — cria o perfil automaticamente
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (authUser) {
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .upsert({
+              user_id: userId,
+              email: authUser.email ?? '',
+              nome: authUser.user_metadata?.nome ?? '',
+              quiz_completo: false,
+              is_admin: false,
+              ativo: true,
+            }, { onConflict: 'user_id' })
+            .select()
+            .maybeSingle()
+          if (newProfile) setProfile(newProfile as Profile)
+        }
+      }
     } catch (err) {
       console.error('Erro perfil:', err)
     }
