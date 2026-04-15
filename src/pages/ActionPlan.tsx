@@ -13,35 +13,32 @@ import {
 // ── Cache: exercise name → YouTube video ID ───────────────────────────────────
 const videoCache: Record<string, string> = {}
 
-async function abrirVideoExercicio(exercicio: string) {
+// Pré-carrega o video ID em background (sem bloquear o clique)
+async function prefetchVideoId(exercicio: string) {
   const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
+  if (!apiKey || videoCache[exercicio]) return
+  try {
+    const q = encodeURIComponent(`${exercicio} como fazer exercício academia passo a passo`)
+    const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${q}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
+    const res = await fetch(url)
+    const data = await res.json()
+    const videoId = data.items?.[0]?.id?.videoId
+    if (videoId) videoCache[exercicio] = videoId
+  } catch { /* silencia */ }
+}
 
-  // Check in-memory cache
+// SÍNCRONO — window.open() só funciona em mobile se chamado sem await
+function abrirVideoExercicio(exercicio: string) {
   if (videoCache[exercicio]) {
+    // Já temos o ID: abre direto no vídeo
     window.open(`https://www.youtube.com/watch?v=${videoCache[exercicio]}`, '_blank')
-    return
+  } else {
+    // Abre busca filtrada só por vídeos (sp= filtra canais/playlists)
+    const q = encodeURIComponent(`${exercicio} como fazer academia corretamente`)
+    window.open(`https://www.youtube.com/results?search_query=${q}&sp=EgIQAQ%3D%3D`, '_blank')
+    // Pré-carrega ID para o próximo clique já abrir direto
+    prefetchVideoId(exercicio)
   }
-
-  if (apiKey) {
-    try {
-      const query = encodeURIComponent(`${exercicio} como fazer exercício academia corretamente`)
-      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
-      const res = await fetch(url)
-      const data = await res.json()
-      const videoId = data.items?.[0]?.id?.videoId
-      if (videoId) {
-        videoCache[exercicio] = videoId
-        window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
-        return
-      }
-    } catch (_e) {
-      // fall through to search
-    }
-  }
-
-  // Fallback: open YouTube search
-  const query = encodeURIComponent(`${exercicio} como fazer academia corretamente`)
-  window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank')
 }
 
 // ── TIPOS ─────────────────────────────────────────────────────────────────────
@@ -1306,6 +1303,8 @@ export default function ActionPlan() {
                             <div className="space-y-3">
                               {exercicios.map((ex, j) => {
                                 const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
+                                // Pré-carrega o ID ao exibir os exercícios
+                                if (!isDescanso) prefetchVideoId(ex.nome)
                                 return (
                                   <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
                                     {/* Nome + séries */}
