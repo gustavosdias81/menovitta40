@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import OpenAI from 'openai'
 import { useAuth } from '../contexts/AuthContext'
 import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
@@ -12,10 +12,10 @@ import {
 
 // ── IA Nutricional Menovitta ──────────────────────────────────────────────────
 // Inicialização lazy — evita erro se chave não estiver definida no build
-function getGenAI() {
-  const key = import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
-  return new GoogleGenerativeAI(key)
+function getOpenAI() {
+  const key = import.meta.env.VITE_OPENAI_API_KEY
+  if (!key) throw new Error('VITE_OPENAI_API_KEY não configurada')
+  return new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true })
 }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -46,26 +46,20 @@ interface Sugestao {
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
-  const genAI = getGenAI()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const openai = getOpenAI()
 
-  const toBase64 = (file: File): Promise<string> =>
+  const toBase64DataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onload = () => resolve(reader.result as string)
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
 
-  const base64 = await toBase64(imageFile)
+  const dataUrl = await toBase64DataUrl(imageFile)
 
-  // Normaliza o mime type para tipos aceitos pela API
-  const mimeRaw = imageFile.type || 'image/jpeg'
-  const mimeType = (
-    mimeRaw === 'image/heif' || mimeRaw === 'image/heic'
-      ? 'image/jpeg'
-      : mimeRaw
-  ) as 'image/jpeg' | 'image/png' | 'image/webp'
+  // Normaliza HEIF/HEIC do iPhone → jpeg para compatibilidade
+  const normalizedUrl = dataUrl.replace(/^data:image\/(heif|heic);/, 'data:image/jpeg;')
 
   const prompt = `Analise esta foto de refeição e retorne um JSON com análise nutricional estimada.
 Contexto: App de saúde para mulheres 40+ na menopausa que buscam emagrecer.
@@ -89,11 +83,21 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { mimeType, data: base64 } },
-      ])
-      const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 800,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: normalizedUrl, detail: 'low' } },
+            ],
+          },
+        ],
+      })
+      const text = response.choices[0]?.message?.content?.trim() || ''
+      const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       return JSON.parse(clean) as AnaliseResultado
     } catch (err) {
       if (attempt === 2) throw err
@@ -106,9 +110,7 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 async function gerarReceitaIA(
   faltamCal: number, faltamProt: number, faseMenopausa: string
 ): Promise<Sugestao> {
-  const genAI = getGenAI()
-  // gemini-1.5-flash-8b: mais leve, menos sujeito a rate limit, suporta visão
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' })
+  const openai = getOpenAI()
 
   const contexto = faltamCal > 100
     ? `A aluna ainda precisa de ${Math.round(faltamCal)} kcal e ${Math.round(faltamProt)}g de proteína hoje.`
@@ -139,13 +141,16 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json):
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const result = await model.generateContent(prompt)
-      const text = result.response.text().trim()
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 700,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const text = response.choices[0]?.message?.content?.trim() || ''
       const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       return JSON.parse(clean) as Sugestao
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      // Se não for rate limit, falha imediatamente
       if (!msg.includes('429') && !msg.includes('quota') && attempt < 2) throw err
       if (attempt === 2) throw err
     }
@@ -275,11 +280,11 @@ export default function NutritionalAI() {
     } catch (err: unknown) {
       console.error('Erro análise IA:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_GEMINI_API_KEY')) {
-        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY nas variáveis de ambiente.')
-      } else if (msg.includes('API_KEY') || msg.includes('403') || msg.includes('401')) {
-        setScanError('Chave Gemini inválida ou sem permissão. Verifique a chave no Vercel.')
-      } else if (msg.includes('quota') || msg.includes('429')) {
+      if (msg.includes('VITE_OPENAI_API_KEY')) {
+        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_OPENAI_API_KEY nas variáveis de ambiente.')
+      } else if (msg.includes('401') || msg.includes('Incorrect API key')) {
+        setScanError('Chave OpenAI inválida ou sem permissão. Verifique a chave no Vercel.')
+      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('insufficient_quota')) {
         setScanError('Limite de requisições atingido. Aguarde alguns minutos e tente novamente.')
       } else {
         setScanError(`Erro ao analisar: ${msg.slice(0, 100)}`)
@@ -307,8 +312,8 @@ export default function NutritionalAI() {
 
   // ── Sugestão handler ─────────────────────────────────────────────────────────
   const handleGerarSugestao = async () => {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-      setSugestaoError('Chave da IA não configurada. Adicione VITE_GEMINI_API_KEY no Vercel.')
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setSugestaoError('Chave da IA não configurada. Adicione VITE_OPENAI_API_KEY no Vercel.')
       return
     }
     setLoadingSugestao(true)
@@ -321,11 +326,11 @@ export default function NutritionalAI() {
     } catch (err: unknown) {
       console.error('IA Nutricional error:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_GEMINI_API_KEY')) {
-        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY.')
-      } else if (msg.includes('API_KEY') || msg.includes('403') || msg.includes('401')) {
-        setSugestaoError('Chave Gemini inválida. Verifique no Vercel → Environment Variables.')
-      } else if (msg.includes('quota') || msg.includes('429')) {
+      if (msg.includes('VITE_OPENAI_API_KEY')) {
+        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_OPENAI_API_KEY.')
+      } else if (msg.includes('401') || msg.includes('Incorrect API key')) {
+        setSugestaoError('Chave OpenAI inválida. Verifique no Vercel → Environment Variables.')
+      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('insufficient_quota')) {
         setSugestaoError('Limite atingido. Aguarde alguns minutos.')
       } else {
         setSugestaoError(`Erro: ${msg.slice(0, 80)}. Tente novamente.`)
