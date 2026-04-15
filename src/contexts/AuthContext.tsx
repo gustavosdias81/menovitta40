@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types'
@@ -14,6 +14,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, nome: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  setProfile: React.Dispatch<React.SetStateAction<Profile | null>>
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, session, profile, loading,
       isAdmin: profile?.is_admin ?? false,
       quizCompleto: profile?.quiz_completo === true || localStorage.getItem(`quiz_done_${user?.id}`) === '1',
-      signIn, signUp, signOut, refreshProfile,
+      signIn, signUp, signOut, refreshProfile, setProfile,
     }}>
       {children}
     </AuthContext.Provider>

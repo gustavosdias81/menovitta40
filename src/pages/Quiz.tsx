@@ -78,7 +78,7 @@ const STEPS = [
 ]
 
 export default function Quiz() {
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile, setProfile } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -200,6 +200,10 @@ export default function Quiz() {
 
     // Marca localmente que o quiz foi concluído (fallback se Supabase falhar)
     localStorage.setItem(`quiz_done_${user.id}`, '1')
+
+    // Força quiz_completo no contexto diretamente, sem depender do banco
+    setProfile(prev => prev ? { ...prev, quiz_completo: true } : prev)
+
     setLoading(false)
     setStep(STEPS.length - 1)
 

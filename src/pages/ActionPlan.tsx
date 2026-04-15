@@ -903,6 +903,9 @@ export default function ActionPlan() {
   const [semanaAtiva, setSemanaAtiva] = useState(0)
   const [expandedDia, setExpandedDia] = useState<number | null>(null)
 
+  // Modal de vídeo YouTube
+  const [videoModal, setVideoModal] = useState<string | null>(null)
+
   // Streak & registro diário
   const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
   const [marcando, setMarcando] = useState(false)
@@ -998,6 +1001,51 @@ export default function ActionPlan() {
 
   return (
     <div className="page-container">
+      {/* ── Modal de Demonstração YouTube ── */}
+      {videoModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setVideoModal(null)}
+        >
+          <div
+            className="relative w-full max-w-lg bg-black rounded-2xl overflow-hidden shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between bg-gray-900 px-4 py-3">
+              <p className="text-white text-sm font-semibold truncate pr-4">{videoModal}</p>
+              <button
+                onClick={() => setVideoModal(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex-shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Vídeo embed */}
+            <div className="aspect-video bg-black">
+              <iframe
+                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(videoModal + ' como fazer corretamente exercício')}&index=0&autoplay=1`}
+                className="w-full h-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                title={videoModal}
+              />
+            </div>
+            {/* Fallback link */}
+            <div className="bg-gray-900 px-4 py-3 text-center">
+              <a
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(videoModal + ' como fazer corretamente')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-red-400 hover:text-red-300 underline"
+              >
+                ▶ Abrir no YouTube
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="page-title">Plano de Ação</h1>
       <p className="page-subtitle">
         {fase === 'pre_menopausa' ? 'Pré-Menopausa' : fase === 'menopausa' ? 'Menopausa' : 'Pós-Menopausa'}
@@ -1278,19 +1326,16 @@ export default function ActionPlan() {
                                     </div>
                                     <div className="flex items-center gap-2 ml-2 shrink-0">
                                       <span className="text-sm font-bold text-rosa-500">{ex.series}</span>
-                                      {!ex.nome.startsWith('🛌') && !ex.nome.startsWith('🏆') && (
+                                      {!ex.nome.startsWith('🛌') && !ex.nome.startsWith('🏆') && !ex.nome.startsWith('💪') && (
                                         <button
                                           onClick={e => {
                                             e.stopPropagation()
-                                            window.open(
-                                              `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.nome + ' como fazer execução correta')}`,
-                                              '_blank'
-                                            )
+                                            setVideoModal(ex.nome)
                                           }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 transition-colors"
-                                          title="Ver demonstração no YouTube"
+                                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-red-500 text-[11px] font-semibold"
+                                          title="Ver demonstração"
                                         >
-                                          <PlayCircle size={16} className="text-red-500" />
+                                          <PlayCircle size={13} /> Demo
                                         </button>
                                       )}
                                     </div>

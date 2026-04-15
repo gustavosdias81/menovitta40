@@ -10,7 +10,7 @@ import {
   Apple, Flame, Zap, Target
 } from 'lucide-react'
 
-// ── Gemini 1.5 Flash ──────────────────────────────────────────────────────────
+// ── IA Nutricional Menovitta ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -114,9 +114,20 @@ Retorne APENAS um JSON array válido (sem markdown, sem \`\`\`json) com este for
   }
 ]`
 
-  const result = await model.generateContent(prompt)
-  const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-  return JSON.parse(clean) as Sugestao[]
+  // Retry automático: tenta até 2 vezes em caso de falha
+  let lastErr: unknown
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await model.generateContent(prompt)
+      const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+      return JSON.parse(clean) as Sugestao[]
+    } catch (err) {
+      lastErr = err
+      console.warn(`IA Nutricional: tentativa ${attempt + 1} falhou`, err)
+      if (attempt < 1) await new Promise(r => setTimeout(r, 1500))
+    }
+  }
+  throw lastErr
 }
 
 // ── Helper: cor da barra de progresso ────────────────────────────────────────
@@ -274,7 +285,7 @@ export default function NutritionalAI() {
       const s = await gerarSugestoesIA(faltam.calorias, faltam.proteinas, faltam.gorduras, faltam.carboidratos, fase)
       setSugestoes(s)
     } catch (err) {
-      console.error('Gemini sugestões error:', err)
+      console.error('IA Nutricional sugestões error:', err)
       setSugestaoError('Erro ao gerar sugestões. Verifique sua conexão e tente novamente.')
     } finally { setLoadingSugestoes(false) }
   }
@@ -295,7 +306,7 @@ export default function NutritionalAI() {
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <h1 className="page-title">IA Nutricional</h1>
-        <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">Gemini AI</span>
+        <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">IA Menovitta</span>
       </div>
       <p className="page-subtitle mb-4">Controle seus macros e receba sugestões personalizadas</p>
 
@@ -389,7 +400,7 @@ export default function NutritionalAI() {
               <h3 className="font-semibold text-gray-800 mb-1">Escaneie seu Prato</h3>
               <p className="text-xs text-gray-400 mb-1">Foto → macros automáticos com IA</p>
               <p className="text-[10px] text-rosa-400 mb-5 flex items-center justify-center gap-1">
-                <Sparkles size={11} /> Gemini 1.5 Flash
+                <Sparkles size={11} /> IA Nutricional Menovitta
               </p>
               <div className="flex gap-3">
                 <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex-1 flex items-center justify-center gap-2">
