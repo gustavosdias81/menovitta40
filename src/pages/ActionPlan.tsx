@@ -903,9 +903,6 @@ export default function ActionPlan() {
   const [semanaAtiva, setSemanaAtiva] = useState(0)
   const [expandedDia, setExpandedDia] = useState<number | null>(null)
 
-  // Modal de vídeo YouTube
-  const [videoModal, setVideoModal] = useState<string | null>(null)
-
   // Streak & registro diário
   const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
   const [marcando, setMarcando] = useState(false)
@@ -1001,51 +998,6 @@ export default function ActionPlan() {
 
   return (
     <div className="page-container">
-      {/* ── Modal de Demonstração YouTube ── */}
-      {videoModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setVideoModal(null)}
-        >
-          <div
-            className="relative w-full max-w-lg bg-black rounded-2xl overflow-hidden shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between bg-gray-900 px-4 py-3">
-              <p className="text-white text-sm font-semibold truncate pr-4">{videoModal}</p>
-              <button
-                onClick={() => setVideoModal(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex-shrink-0"
-              >
-                ✕
-              </button>
-            </div>
-            {/* Vídeo embed */}
-            <div className="aspect-video bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(videoModal + ' como fazer corretamente exercício')}&index=0&autoplay=1`}
-                className="w-full h-full"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                title={videoModal}
-              />
-            </div>
-            {/* Fallback link */}
-            <div className="bg-gray-900 px-4 py-3 text-center">
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(videoModal + ' como fazer corretamente')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-red-400 hover:text-red-300 underline"
-              >
-                ▶ Abrir no YouTube
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
       <h1 className="page-title">Plano de Ação</h1>
       <p className="page-subtitle">
         {fase === 'pre_menopausa' ? 'Pré-Menopausa' : fase === 'menopausa' ? 'Menopausa' : 'Pós-Menopausa'}
@@ -1317,32 +1269,35 @@ export default function ActionPlan() {
                             </div>
 
                             {/* Exercícios */}
-                            <div className="space-y-2">
-                              {exercicios.map((ex, j) => (
-                                <div key={j} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-700">{ex.nome}</p>
+                            <div className="space-y-3">
+                              {exercicios.map((ex, j) => {
+                                const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
+                                const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(ex.nome + ' como fazer corretamente academia')}`
+                                return (
+                                  <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
+                                    {/* Nome + séries */}
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className="text-sm font-medium text-gray-700 flex-1">{ex.nome}</p>
+                                      <span className="text-sm font-bold text-rosa-500 ml-2 shrink-0">{ex.series}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 ml-2 shrink-0">
-                                      <span className="text-sm font-bold text-rosa-500">{ex.series}</span>
-                                      {!ex.nome.startsWith('🛌') && !ex.nome.startsWith('🏆') && !ex.nome.startsWith('💪') && (
-                                        <button
-                                          onClick={e => {
-                                            e.stopPropagation()
-                                            setVideoModal(ex.nome)
-                                          }}
-                                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-red-500 text-[11px] font-semibold"
-                                          title="Ver demonstração"
-                                        >
-                                          <PlayCircle size={13} /> Demo
-                                        </button>
-                                      )}
-                                    </div>
+                                    {/* Observação */}
+                                    {ex.obs && <p className="text-xs text-gray-400 mb-2">{ex.obs}</p>}
+                                    {/* Botão YouTube */}
+                                    {!isDescanso && (
+                                      <a
+                                        href={youtubeUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={e => e.stopPropagation()}
+                                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
+                                      >
+                                        <PlayCircle size={17} />
+                                        ▶ Ver demonstração no YouTube
+                                      </a>
+                                    )}
                                   </div>
-                                  {ex.obs && <p className="text-xs text-gray-400 mt-1">{ex.obs}</p>}
-                                </div>
-                              ))}
+                                )
+                              })}
                             </div>
 
                             {/* Cardio */}
