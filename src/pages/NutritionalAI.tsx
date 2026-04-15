@@ -85,13 +85,21 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json) com este formato e
 
 Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 
-  const result = await model.generateContent([
-    prompt,
-    { inlineData: { mimeType, data: base64 } },
-  ])
-
-  const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-  return JSON.parse(clean) as AnaliseResultado
+  const delays = [0, 8000, 20000]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
+    try {
+      const result = await model.generateContent([
+        prompt,
+        { inlineData: { mimeType, data: base64 } },
+      ])
+      const clean = result.response.text().trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+      return JSON.parse(clean) as AnaliseResultado
+    } catch (err) {
+      if (attempt === 2) throw err
+    }
+  }
+  throw new Error('Falha após 3 tentativas')
 }
 
 // ── Sugestão de refeição (1 receita) ─────────────────────────────────────────
@@ -99,7 +107,8 @@ async function gerarReceitaIA(
   faltamCal: number, faltamProt: number, faseMenopausa: string
 ): Promise<Sugestao> {
   const genAI = getGenAI()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  // gemini-1.5-flash-8b: mais leve, menos sujeito a rate limit, suporta visão
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' })
 
   const contexto = faltamCal > 100
     ? `A aluna ainda precisa de ${Math.round(faltamCal)} kcal e ${Math.round(faltamProt)}g de proteína hoje.`
@@ -125,18 +134,23 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json):
   "imagem_termo": "food search term in English"
 }`
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // 3 tentativas com backoff exponencial
+  const delays = [0, 5000, 15000]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
       const result = await model.generateContent(prompt)
       const text = result.response.text().trim()
       const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       return JSON.parse(clean) as Sugestao
     } catch (err) {
-      if (attempt < 1) await new Promise(r => setTimeout(r, 1500))
-      else throw err
+      const msg = err instanceof Error ? err.message : String(err)
+      // Se não for rate limit, falha imediatamente
+      if (!msg.includes('429') && !msg.includes('quota') && attempt < 2) throw err
+      if (attempt === 2) throw err
     }
   }
-  throw new Error('Failed after 2 attempts')
+  throw new Error('Falha após 3 tentativas')
 }
 
 // ── Helper: cor da barra de progresso ────────────────────────────────────────
