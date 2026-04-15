@@ -85,10 +85,12 @@ export default function Quiz() {
   const [erro, setErro] = useState('')
 
   const [idade, setIdade] = useState(45)
-  const [peso, setPeso] = useState(70)
-  const [pesoAlterado, setPesoAlterado] = useState(false)
-  const [altura, setAltura] = useState(1.60)
-  const [alturaAlterada, setAlturaAlterada] = useState(false)
+  const [pesoStr, setPesoStr] = useState('70')
+  const [alturaStr, setAlturaStr] = useState('1.60')
+  const peso = parseFloat(pesoStr) || 0
+  const altura = parseFloat(alturaStr) || 0
+  const pesoAlterado = pesoStr !== '70'
+  const alturaAlterada = alturaStr !== '1.60'
   const [circAbdominal, setCircAbdominal] = useState<number | undefined>()
   const [ultimaMenstruacao, setUltimaMenstruacao] = useState('')
   const [cicloRegular, setCicloRegular] = useState(true)
@@ -316,9 +318,11 @@ export default function Quiz() {
                   <Scale size={13} className="text-rosa-500" /> Peso (kg)
                 </label>
                 <input
-                  type="number" step="0.1" value={peso}
-                  onChange={e => { setPeso(Number(e.target.value)); setPesoAlterado(true) }}
+                  type="number" step="0.1"
+                  value={pesoStr}
+                  onChange={e => setPesoStr(e.target.value)}
                   onFocus={e => e.target.select()}
+                  placeholder="Ex: 70"
                   className="input-field text-center text-lg"
                 />
               </div>
@@ -327,9 +331,11 @@ export default function Quiz() {
                   <Ruler size={13} className="text-rosa-500" /> Altura (m)
                 </label>
                 <input
-                  type="number" step="0.01" value={altura}
-                  onChange={e => { setAltura(Number(e.target.value)); setAlturaAlterada(true) }}
+                  type="number" step="0.01"
+                  value={alturaStr}
+                  onChange={e => setAlturaStr(e.target.value)}
                   onFocus={e => e.target.select()}
+                  placeholder="Ex: 1.65"
                   className="input-field text-center text-lg"
                 />
               </div>
