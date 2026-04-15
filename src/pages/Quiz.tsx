@@ -176,10 +176,13 @@ export default function Quiz() {
           }, { onConflict: 'user_id' })
           if (e1) console.warn('Anamnese:', e1.message)
 
-          const { error: e2 } = await supabase.from('profiles').update({
+          const { error: e2 } = await supabase.from('profiles').upsert({
+            user_id: user.id,
+            email: user.email ?? '',
+            nome: user.user_metadata?.nome ?? '',
             idade, peso, altura, fase_menopausa: fase, objetivo,
             quiz_completo: true, updated_at: new Date().toISOString(),
-          }).eq('user_id', user.id)
+          }, { onConflict: 'user_id' })
           if (e2) console.warn('Perfil:', e2.message)
 
           const { error: e3 } = await supabase.from('planos_acao').upsert({

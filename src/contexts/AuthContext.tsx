@@ -99,9 +99,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, nome: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password, options: { data: { nome } }
     })
+    // Cria linha na tabela profiles logo após o cadastro
+    if (!error && data.user) {
+      await supabase.from('profiles').upsert({
+        user_id: data.user.id,
+        email,
+        nome,
+        quiz_completo: false,
+        is_admin: false,
+        ativo: true,
+      }, { onConflict: 'user_id' })
+    }
     return { error: error as Error | null }
   }
 
