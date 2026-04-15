@@ -35,13 +35,29 @@ export default function Profile() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!profile) refreshProfile()
+    // Tenta carregar automaticamente até 3 vezes com delay
+    let tentativas = 0
+    const tentar = async () => {
+      if (tentativas >= 3) return
+      tentativas++
+      await refreshProfile()
+    }
+    if (!profile) {
+      tentar()
+      const t1 = setTimeout(tentar, 2000)
+      const t2 = setTimeout(tentar, 4500)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
+    }
   }, [])
 
   if (!profile) return (
     <div className="page-container flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="w-10 h-10 border-3 border-rosa-400 border-t-transparent rounded-full animate-spin" />
       <p className="text-gray-400 text-sm text-center">Carregando seu perfil...</p>
-      <button onClick={refreshProfile} className="flex items-center gap-2 text-rosa-500 text-sm font-medium">
+      <button
+        onClick={refreshProfile}
+        className="flex items-center gap-2 text-rosa-500 text-sm font-medium"
+      >
         <RefreshCw size={16} /> Tentar novamente
       </button>
     </div>
