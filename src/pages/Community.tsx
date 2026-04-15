@@ -64,26 +64,35 @@ export default function Community() {
 
   const loadArtigos = async () => {
     setLoadingArtigos(true)
-    const { data } = await getArtigos(true)
-    if (data) setArtigos(data as Artigo[])
-    setLoadingArtigos(false)
+    try {
+      const { data } = await getArtigos(true)
+      if (data) setArtigos(data as Artigo[])
+    } catch (e) {
+      console.error('loadArtigos error:', e)
+    } finally {
+      setLoadingArtigos(false)
+    }
   }
 
   const loadPosts = async () => {
     setLoading(true)
-    const { data } = await getCommunityPosts(50)
-    if (data) {
-      const all = data as CommunityPost[]
-      // Filtra ocultos para não-admins; pinados primeiro
-      const visiveis = isAdmin ? all : all.filter(p => !p.oculto)
-      visiveis.sort((a, b) => {
-        if (a.pinado && !b.pinado) return -1
-        if (!a.pinado && b.pinado) return 1
-        return 0
-      })
-      setPosts(visiveis)
+    try {
+      const { data } = await getCommunityPosts(50)
+      if (data) {
+        const all = data as CommunityPost[]
+        const visiveis = isAdmin ? all : all.filter(p => !p.oculto)
+        visiveis.sort((a, b) => {
+          if (a.pinado && !b.pinado) return -1
+          if (!a.pinado && b.pinado) return 1
+          return 0
+        })
+        setPosts(visiveis)
+      }
+    } catch (e) {
+      console.error('loadPosts error:', e)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handlePost = async () => {

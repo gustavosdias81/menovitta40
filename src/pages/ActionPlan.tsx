@@ -914,16 +914,21 @@ export default function ActionPlan() {
   const loadData = async () => {
     if (!user) return
     setLoading(true)
-    const [planoRes, logsRes] = await Promise.all([
-      supabase.from('planos_acao').select('*').eq('user_id', user.id).maybeSingle(),
-      getTreinoLogs(user.id, 60),
-    ])
-    if (planoRes.data) {
-      setPlano(planoRes.data as PlanoAcao)
-      if (planoRes.data.trilha_ativa) setTrilhaAtiva(planoRes.data.trilha_ativa as TrilhaAtiva)
+    try {
+      const [planoRes, logsRes] = await Promise.all([
+        supabase.from('planos_acao').select('*').eq('user_id', user.id).maybeSingle(),
+        getTreinoLogs(user.id, 60),
+      ])
+      if (planoRes.data) {
+        setPlano(planoRes.data as PlanoAcao)
+        if (planoRes.data.trilha_ativa) setTrilhaAtiva(planoRes.data.trilha_ativa as TrilhaAtiva)
+      }
+      if (logsRes.data) setTreinoLogs(logsRes.data as TreinoLog[])
+    } catch (e) {
+      console.error('ActionPlan loadData error:', e)
+    } finally {
+      setLoading(false)
     }
-    if (logsRes.data) setTreinoLogs(logsRes.data as TreinoLog[])
-    setLoading(false)
   }
 
   const salvarTrilha = async (nova: TrilhaAtiva) => {

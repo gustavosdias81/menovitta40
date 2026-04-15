@@ -127,9 +127,27 @@ function barColor(pct: number) {
   return 'bg-green-400'
 }
 
-// ── Imagem de comida via Unsplash ─────────────────────────────────────────────
+// ── Imagem de comida via Unsplash (curadoria por categoria) ──────────────────
+const FOOD_IMGS: Record<string, string> = {
+  default:   'photo-1490645935967-10de6ba17061',
+  salad:     'photo-1512621776951-a57141f2eefd',
+  salmon:    'photo-1467003909585-2f8a72700288',
+  chicken:   'photo-1598103442097-8b74394b95c3',
+  egg:       'photo-1525351484163-7529414344d8',
+  soup:      'photo-1547592166-23ac45744acd',
+  smoothie:  'photo-1553530666-ba11a90bb0ae',
+  bowl:      'photo-1540189549336-e6e99c3679fe',
+  protein:   'photo-1490645935967-10de6ba17061',
+  pasta:     'photo-1473093295043-cdd812d0e601',
+  rice:      'photo-1536304929831-ee1ca9d44906',
+  fruit:     'photo-1519996529931-28324d5a630e',
+  yogurt:    'photo-1488477181946-6428a0291777',
+}
+
 function foodImageUrl(termo: string) {
-  return `https://source.unsplash.com/400x280/?${encodeURIComponent(termo + ',food,healthy')}`
+  const lower = termo.toLowerCase()
+  const key = Object.keys(FOOD_IMGS).find(k => lower.includes(k)) || 'default'
+  return `https://images.unsplash.com/${FOOD_IMGS[key]}?auto=format&fit=crop&w=400&q=80`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -246,13 +264,18 @@ export default function NutritionalAI() {
 
   // ── Sugestões handler ────────────────────────────────────────────────────────
   const handleGerarSugestoes = async () => {
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      setSugestaoError('Chave da IA não configurada. Adicione VITE_GEMINI_API_KEY no Vercel.')
+      return
+    }
     setLoadingSugestoes(true); setSugestaoError(null); setSugestoes(null); setSugestaoAberta(null)
     try {
       const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
       const s = await gerarSugestoesIA(faltam.calorias, faltam.proteinas, faltam.gorduras, faltam.carboidratos, fase)
       setSugestoes(s)
-    } catch {
-      setSugestaoError('Erro ao gerar sugestões. Tente novamente.')
+    } catch (err) {
+      console.error('Gemini sugestões error:', err)
+      setSugestaoError('Erro ao gerar sugestões. Verifique sua conexão e tente novamente.')
     } finally { setLoadingSugestoes(false) }
   }
 

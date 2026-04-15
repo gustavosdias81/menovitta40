@@ -53,9 +53,14 @@ export default function AdminDashboard() {
 
   const loadProfiles = async () => {
     setLoading(true)
-    const { data } = await getAllProfiles()
-    if (data) setProfiles(data.filter((p: Profile) => !p.is_admin) as Profile[])
-    setLoading(false)
+    try {
+      const { data } = await getAllProfiles()
+      if (data) setProfiles(data.filter((p: Profile) => !p.is_admin) as Profile[])
+    } catch (e) {
+      console.error('loadProfiles error:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadNotificacoes = async () => {
