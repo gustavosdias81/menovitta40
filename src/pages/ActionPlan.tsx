@@ -984,6 +984,172 @@ function calcularDesafioMensal(logs: TreinoLog[]) {
   return { feitos, meta, pct: Math.min(100, Math.round((feitos / meta) * 100)) }
 }
 
+// ── QUERIES DE VÍDEO OTIMIZADAS POR EXERCÍCIO ────────────────────────────────
+// Garante que cada exercício mostre o vídeo correto, sem ambiguidade
+const QUERY_EXERCICIOS: Record<string, string> = {
+  // ── INFERIORES ──
+  'Leg Press 45°': 'leg press 45 graus academia como fazer tutorial passo a passo',
+  'Cadeira Extensora': 'cadeira extensora quadríceps academia como fazer tutorial',
+  'Cadeira Flexora': 'cadeira flexora isquiotibiais academia como fazer tutorial',
+  'Panturrilha sentada': 'panturrilha sentada aparelho academia como fazer tutorial',
+  'Panturrilha em pé': 'panturrilha em pé academia como fazer tutorial',
+  'Panturrilha na escada': 'panturrilha na escada em casa exercício tutorial',
+  'Elevação de panturrilha em pé': 'elevação de panturrilha em pé sem equipamento tutorial',
+  'Agachamento livre': 'agachamento livre execução correta tutorial passo a passo',
+  'Agachamento Smith': 'agachamento no smith machine academia como fazer tutorial',
+  'Agachamento livre ou Smith': 'agachamento livre academia execução correta tutorial',
+  'Agachamento livre/Smith': 'agachamento livre ou smith machine academia tutorial',
+  'Agachamento na máquina/Smith': 'agachamento na máquina smith academia tutorial',
+  'Agachamento Smith (leve)': 'agachamento smith machine iniciante carga leve tutorial',
+  'Agachamento sumô': 'agachamento sumô execução correta tutorial passo a passo',
+  'Agachamento sumô com peso': 'agachamento sumô com halter ou kettlebell tutorial',
+  'Agachamento na cadeira': 'agachamento assistido sentando na cadeira exercício tutorial',
+  'Agachamento isométrico na parede': 'agachamento isométrico na parede wall sit tutorial',
+  'Agachamento búlgaro': 'agachamento búlgaro exercício perna como fazer tutorial',
+  'Agachamento livre (sem cadeira)': 'agachamento livre iniciante execução tutorial',
+  'Afundo alternado': 'afundo alternado com passada exercício perna tutorial passo a passo',
+  'Afundo caminhando': 'afundo caminhando walking lunge exercício em casa tutorial passo a passo',
+  'Afundo reverso': 'afundo reverso passada para trás exercício perna tutorial',
+  'Afundo reverso suave': 'afundo reverso passada para trás iniciante exercício tutorial',
+  'Avanço (afundo) com halteres': 'afundo avanço com halteres academia exercício perna tutorial',
+  'Afundo + Rosca bíceps': 'afundo com rosca bíceps exercício funcional combinado tutorial',
+  'Stiff (levantamento terra romeno)': 'stiff levantamento terra romeno com halter isquiotibial tutorial',
+  'Stiff com halter': 'stiff levantamento terra romeno com halter academia tutorial',
+  'Stiff com halter leve': 'stiff levantamento terra romeno iniciante carga leve tutorial',
+  'Ponte de glúteo': 'ponte de glúteo exercício em casa tutorial passo a passo',
+  'Ponte de glúteo unilateral': 'ponte de glúteo unilateral uma perna exercício tutorial',
+  'Ponte unilateral': 'ponte glúteo unilateral uma perna exercício tutorial',
+  'Abdução lateral em pé': 'abdução de quadril lateral em pé exercício tutorial',
+  'Cadeira Abdutora': 'cadeira abdutora academia como fazer tutorial',
+  'Cadeira Adutora': 'cadeira adutora academia como fazer tutorial',
+  'Elevação lateral de perna em pé': 'elevação lateral de perna em pé glúteo exercício tutorial',
+  // ── SUPERIORES ──
+  'Supino máquina': 'supino máquina peitoral academia como fazer tutorial',
+  'Supino reto com halter': 'supino reto com halter peitoral academia como fazer tutorial',
+  'Supino inclinado máquina': 'supino inclinado máquina peitoral academia como fazer tutorial',
+  'Supino inclinado': 'supino inclinado peitoral academia como fazer tutorial',
+  'Puxada frontal': 'puxada frontal costas academia como fazer tutorial passo a passo',
+  'Puxada frontal pronada': 'puxada frontal pegada pronada costas academia tutorial',
+  'Puxada pronada': 'puxada pronada costas latíssimo academia tutorial',
+  'Puxada supina (pegada invertida)': 'puxada supina pegada invertida bíceps costas academia tutorial',
+  'Puxada triângulo (pegada neutra)': 'puxada triângulo pegada neutra costas academia tutorial',
+  'Remada baixa sentada': 'remada baixa sentada cabo costas academia como fazer tutorial',
+  'Remada sentada no cabo': 'remada sentada cabo costas academia como fazer tutorial',
+  'Remada baixa no cabo': 'remada baixa cabo costas academia como fazer tutorial',
+  'Remada unilateral com halter': 'remada unilateral com halter costas academia como fazer tutorial',
+  'Remada curvada com halter': 'remada curvada com halter costas como fazer tutorial',
+  'Remada curvada com barra/halter': 'remada curvada com barra ou halter costas academia tutorial',
+  'Remada curvada com elástico/galão': 'remada curvada com elástico em casa como fazer tutorial',
+  'Remada curvada com elástico ou galão': 'remada curvada com elástico galão em casa tutorial',
+  'Remada curvada com mochila': 'remada curvada com mochila em casa exercício tutorial',
+  'Remada curvada bilateral': 'remada curvada bilateral exercício costas tutorial',
+  'Remada curvada com galão': 'remada curvada com galão de água em casa tutorial',
+  'Remada curvada': 'remada curvada costas exercício como fazer tutorial',
+  'Remada com garrafa de água': 'remada curvada com garrafa de água em casa tutorial',
+  'Remada com garrafa 2L': 'remada curvada com garrafa 2 litros em casa exercício tutorial',
+  'Remada com garrafa': 'remada curvada com garrafa em casa exercício tutorial',
+  'Remada com elástico ou galão': 'remada com elástico galão em casa tutorial',
+  'Desenvolvimento com halter (ombros)': 'desenvolvimento com halter ombros como fazer tutorial',
+  'Desenvolvimento com halter leve': 'desenvolvimento ombros halter leve iniciante tutorial',
+  'Desenvolvimento com garrafas': 'desenvolvimento ombros com garrafas em casa tutorial',
+  'Desenvolvimento com garrafas (sentada)': 'desenvolvimento ombros garrafas sentada em casa tutorial',
+  'Desenvolvimento com garrafas maiores': 'desenvolvimento ombros com garrafas em casa tutorial',
+  'Elevação lateral com halter': 'elevação lateral ombros com halter academia como fazer tutorial',
+  'Elevação lateral com halter leve': 'elevação lateral ombros halter leve iniciante tutorial',
+  'Elevação lateral com garrafas': 'elevação lateral ombros com garrafa em casa tutorial',
+  'Elevação lateral': 'elevação lateral ombros academia como fazer tutorial',
+  'Elevação frontal': 'elevação frontal ombros como fazer tutorial',
+  'Elevação frontal com halter': 'elevação frontal com halter ombros academia tutorial',
+  'Elevação frontal + lateral com garrafas': 'elevação frontal lateral ombros garrafas em casa tutorial',
+  'Elevação de braço alternada': 'elevação frontal de braço alternada ombros exercício tutorial',
+  'Rosca direta com barra/halter': 'rosca direta barra halter bíceps academia como fazer tutorial',
+  'Rosca bíceps com barra': 'rosca direta barra bíceps academia como fazer tutorial',
+  'Rosca bíceps alternada': 'rosca alternada com halter bíceps academia como fazer tutorial',
+  'Rosca direta com halter': 'rosca direta com halter bíceps academia como fazer tutorial',
+  'Rosca concentrada': 'rosca concentrada bíceps com halter academia como fazer tutorial',
+  'Rosca com garrafas de água': 'rosca bíceps com garrafa de água em casa como fazer tutorial',
+  'Rosca com garrafa': 'rosca bíceps com garrafa em casa exercício tutorial',
+  'Rosca com garrafas (sentada)': 'rosca bíceps garrafa sentada em casa como fazer tutorial',
+  'Tríceps polia alta': 'tríceps polia alta corda extensão academia como fazer tutorial',
+  'Tríceps corda (polia)': 'tríceps corda polia extensão academia como fazer tutorial',
+  'Tríceps no banco/cadeira': 'tríceps no banco mergulho exercício como fazer tutorial',
+  'Tríceps no banco': 'tríceps no banco mergulho exercício como fazer tutorial',
+  'Extensão de coluna (banco romano)': 'extensão de coluna banco romano academia como fazer tutorial',
+  'Extensão de costas no aparelho': 'extensão de costas lombar aparelho academia tutorial',
+  'Extensão de coluna': 'extensão de coluna banco romano como fazer tutorial',
+  // ── CORE ──
+  'Prancha frontal': 'prancha abdominal frontal exercício como fazer tutorial',
+  'Prancha no chão': 'prancha abdominal no chão exercício como fazer tutorial',
+  'Prancha abdominal': 'prancha abdominal exercício como fazer tutorial',
+  'Prancha com toque no ombro': 'prancha com toque no ombro core exercício tutorial',
+  'Prancha com alcance': 'prancha com alcance de braço core exercício tutorial',
+  'Prancha com alcance de braço': 'prancha com alcance de braço core exercício tutorial',
+  'Prancha lateral': 'prancha lateral oblíquo exercício como fazer tutorial',
+  'Prancha lateral com elevação de quadril': 'prancha lateral com elevação de quadril exercício tutorial',
+  'Prancha apoiada nos joelhos': 'prancha de joelhos iniciante exercício abdominal tutorial',
+  'Prancha nos joelhos': 'prancha de joelhos iniciante exercício abdominal tutorial',
+  'Prancha frontal (tentativa)': 'prancha frontal abdominal exercício como fazer tutorial',
+  'Crunch abdominal': 'crunch abdominal execução correta como fazer tutorial',
+  'Crunch inverso': 'crunch inverso elevação de pernas abdominal exercício tutorial',
+  'Abdominal crunch': 'crunch abdominal execução correta como fazer tutorial',
+  'Abdominal infra (elevação de pernas)': 'abdominal infra elevação de pernas exercício tutorial',
+  'Bicicleta abdominal': 'bicicleta abdominal exercício oblíquo tutorial passo a passo',
+  'Tesoura abdominal': 'tesoura abdominal exercício core como fazer tutorial',
+  'Dead Bug': 'dead bug exercício core abdominal estabilização tutorial',
+  'Superman': 'superman exercício costas lombar em casa como fazer tutorial',
+  'Superman com pausa': 'superman com pausa exercício costas lombar tutorial',
+  'Superman suave': 'superman exercício costas lombar suave iniciante tutorial',
+  'Mountain climber leve': 'mountain climber exercício cardio funcional como fazer tutorial',
+  'Mountain climber controlado': 'mountain climber controlado exercício tutorial passo a passo',
+  // ── FUNCIONAIS/COMBINADOS ──
+  'Agachamento + Desenvolvimento (combinado)': 'agachamento com desenvolvimento ombros exercício funcional combinado tutorial',
+  'Agachamento + Press com halter': 'agachamento com press ombros halter exercício funcional academia tutorial',
+  'Agachamento + Press com galão': 'agachamento com press ombros galão em casa exercício funcional tutorial',
+  'Flexão de joelhos': 'flexão de braço de joelhos iniciante como fazer tutorial',
+  'Flexão inclinada na mesa': 'flexão inclinada na mesa exercício como fazer tutorial',
+  'Flexão na parede': 'flexão na parede exercício iniciante como fazer tutorial',
+  'Flexão na mesa': 'flexão inclinada na mesa exercício como fazer tutorial',
+  'Flexão na mesa (mais inclinada)': 'flexão inclinada mesa maior inclinação exercício tutorial',
+  'Flexão completa (ou de joelhos)': 'flexão de braço completa ou de joelhos como fazer tutorial',
+  'Flexão + Prancha': 'flexão de braço com prancha exercício funcional combinado tutorial',
+  // ── CARDIO / MOBILIDADE ──
+  'Bike ou Elíptico': 'bike ergométrica elíptico academia cardio tutorial',
+  'Bike ou Elíptico com resistência': 'bike ergométrica com resistência cardio academia tutorial',
+  'Bike ergométrica': 'bike ergométrica exercício cardio como usar tutorial',
+  'Bike ergométrica (resistência baixa)': 'bike ergométrica iniciante cardio academia tutorial',
+  'Esteira — caminhada inclinada': 'caminhada na esteira inclinação exercício como fazer tutorial',
+  'Esteira — intervalado progressivo': 'treino intervalado na esteira academia tutorial',
+  'Esteira — intervalado': 'treino intervalado na esteira academia tutorial',
+  'Caminhada na esteira ou bike': 'caminhada na esteira academia exercício tutorial',
+  'Caminhada ao ar livre': 'caminhada ao ar livre exercício saúde benefícios tutorial',
+  'Caminhada no bairro': 'caminhada ao ar livre exercício saúde como caminhar tutorial',
+  'Caminhada ou pedalada ao ar livre': 'caminhada ao ar livre exercício aeróbico tutorial',
+  'Caminhada com subidas/escadas': 'caminhada com subidas escadas exercício cardio tutorial',
+  'Caminhada com subidas': 'caminhada com subidas aeróbico exercício tutorial',
+  'Caminhada rápida ou dança': 'caminhada rápida exercício aeróbico saúde tutorial',
+  'Corrida leve ou caminhada rápida': 'corrida leve ou caminhada rápida exercício cardio tutorial',
+  'Caminhada, natação ou dança': 'caminhada ao ar livre exercício aeróbico saúde tutorial',
+  'Equilíbrio unipodal': 'exercício equilíbrio em um pé unipodal tutorial como fazer',
+  'Equilíbrio em um pé': 'exercício equilíbrio em um pé tutorial como fazer',
+  'Equilíbrio tandem': 'exercício equilíbrio tandem pé na frente do outro tutorial',
+  'Equilíbrio tandem olhos fechados': 'exercício equilíbrio tandem olhos fechados tutorial',
+  'Equilíbrio + Prancha': 'exercício equilíbrio prancha funcional tutorial',
+  'Equilíbrio com peso': 'exercício equilíbrio com peso funcional tutorial',
+  'Mobilidade articular': 'exercício mobilidade articular aquecimento tutorial',
+  'Mobilidade articular suave': 'mobilidade articular suave exercício tutorial',
+  'Mobilidade articular sentada': 'mobilidade articular sentada exercício tutorial',
+  'Mobilidade em casa': 'exercício mobilidade articular em casa tutorial',
+  'Alongamento dinâmico': 'alongamento dinâmico exercício pré-treino tutorial',
+  'Alongamento dinâmico pós-cardio': 'alongamento dinâmico pós-treino exercício tutorial',
+  'Alongamento de membros inferiores': 'alongamento perna coxa panturrilha tutorial',
+  'Alongamento muscular': 'alongamento muscular completo pós-treino tutorial',
+  'Alongamento muscular completo': 'alongamento muscular completo corpo pós-treino tutorial',
+  'Alongamento ao ar livre': 'alongamento ao ar livre exercício tutorial',
+  'Alongamento pós-atividade': 'alongamento após exercício recuperação tutorial',
+  'Alongamento em casa': 'alongamento em casa exercício tutorial',
+  'Alongamento completo': 'alongamento completo corpo inteiro tutorial',
+}
+
 const intensidadeColor = (i: string) => {
   if (i === 'Muito Leve' || i === 'Repouso') return 'bg-blue-50 text-blue-600'
   if (i === 'Leve' || i === 'Leve-Moderada') return 'bg-green-50 text-green-600'
@@ -1043,13 +1209,18 @@ export default function ActionPlan() {
   // Modal de vídeo embutido
   const [videoModal, setVideoModal] = useState<{ nome: string; videoId: string | null; erro: boolean } | null>(null)
 
-  const abrirVideo = async (exercicio: string) => {
+  const abrirVideo = async (exercicio: string, localExercicio: 'academia' | 'casa') => {
     setVideoModal({ nome: exercicio, videoId: null, erro: false })
     const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
     if (!apiKey) { setVideoModal({ nome: exercicio, videoId: null, erro: true }); return }
     try {
-      const q = encodeURIComponent(`${exercicio} como fazer exercício passo a passo`)
-      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${q}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR`
+      // Usa query otimizada do dicionário ou gera com contexto de local
+      const queryCustom = QUERY_EXERCICIOS[exercicio]
+      const queryFallback = localExercicio === 'casa'
+        ? `${exercicio} exercício em casa sem equipamento como fazer tutorial`
+        : `${exercicio} academia como fazer exercício tutorial passo a passo`
+      const q = encodeURIComponent(queryCustom || queryFallback)
+      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${q}&key=${apiKey}&relevanceLanguage=pt&regionCode=BR&videoDuration=short`
       const res = await fetch(url)
       const data = await res.json()
       const videoId = data.items?.[0]?.id?.videoId
@@ -1494,23 +1665,30 @@ export default function ActionPlan() {
                                 return (
                                   <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
                                     {/* Nome + séries */}
-                                    <div className="flex items-center justify-between mb-1">
-                                      <p className="text-sm font-medium text-gray-700 flex-1">{ex.nome}</p>
-                                      <span className="text-sm font-bold text-rosa-500 ml-2 shrink-0">{ex.series}</span>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <p className="text-sm font-semibold text-gray-800 flex-1">{ex.nome}</p>
+                                      <span className="text-sm font-bold text-rosa-500 ml-2 shrink-0 bg-rosa-50 px-2 py-0.5 rounded-lg">{ex.series}</span>
                                     </div>
-                                    {/* Observação */}
-                                    {ex.obs && <p className="text-xs text-gray-400 mb-2">{ex.obs}</p>}
+                                    {/* Como fazer — descrição detalhada */}
+                                    {ex.obs && !isDescanso && (
+                                      <div className="mb-2.5 p-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                          <span>📋</span> Como fazer
+                                        </p>
+                                        <p className="text-xs text-gray-700 leading-relaxed">{ex.obs}</p>
+                                      </div>
+                                    )}
                                     {/* Botão YouTube */}
                                     {!isDescanso && (
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation()
-                                          abrirVideo(ex.nome)
+                                          abrirVideo(ex.nome, local)
                                         }}
                                         className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
                                       >
                                         <PlayCircle size={17} />
-                                        ▶ Ver demonstração
+                                        ▶ Ver vídeo demonstrativo
                                       </button>
                                     )}
                                   </div>
