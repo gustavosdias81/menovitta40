@@ -1,5 +1,24 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useEffect, type ReactNode } from 'react'
 import { useAuth } from './contexts/AuthContext'
+
+// Redireciona para /quiz via useEffect (imperativo), nunca via JSX condicional.
+// Isso evita que o <Layout /> seja desmontado durante re-renders do AuthContext,
+// o que cancelava navegações em andamento e exigia reload manual.
+function QuizGuard({ children }: { children: ReactNode }) {
+  const { quizCompleto, loading } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!loading && !quizCompleto) {
+      navigate('/quiz', { replace: true })
+    }
+  }, [loading, quizCompleto, navigate])
+
+  // Enquanto carrega OU se quiz não foi feito, não renderiza o conteúdo
+  if (loading || !quizCompleto) return null
+  return <>{children}</>
+}
 
 // Components
 import Layout from './components/Layout'
@@ -58,9 +77,12 @@ function AppRoutes() {
       } />
 
       {/* App principal (com BottomNav layout) */}
+      {/* QuizGuard usa useEffect para redirecionar — evita desmontar Layout durante re-renders */}
       <Route element={
         <ProtectedRoute>
-          {!quizCompleto ? <Navigate to="/quiz" replace /> : <Layout />}
+          <QuizGuard>
+            <Layout />
+          </QuizGuard>
         </ProtectedRoute>
       }>
         <Route path="/perfil" element={<Profile />} />

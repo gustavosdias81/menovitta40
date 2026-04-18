@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [quizDone, setQuizDone] = useState(false)
 
+  // Busca perfil e já atualiza quizDone se profile.quiz_completo = true
   const fetchProfile = async (userId: string) => {
     try {
       const { data } = await supabase
@@ -38,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .maybeSingle()
-      if (data) setProfile(data as Profile)
+      if (data) {
+        setProfile(data as Profile)
+        if ((data as Profile).quiz_completo === true) setQuizDone(true)
+      }
     } catch (err) {
       console.error('Erro perfil:', err)
     }
@@ -48,17 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id)
   }
 
-  useEffect(() => {
-    if (user?.id) {
-      const localDone = localStorage.getItem(`quiz_done_${user.id}`) === '1'
-      if (localDone) setQuizDone(true)
-    }
-  }, [user?.id])
-
-  useEffect(() => {
-    if (profile?.quiz_completo === true) setQuizDone(true)
-  }, [profile?.quiz_completo])
-
   const marcarQuizCompleto = () => {
     if (user?.id) localStorage.setItem(`quiz_done_${user.id}`, '1')
     setQuizDone(true)
@@ -67,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Timeout de segurança — garante que nunca trava na tela de carregamento
+    // Timeout de segurança — nunca trava na tela de carregamento
     const timeout = setTimeout(() => {
       if (mounted) {
         console.warn('Auth timeout — forçando carregamento')
@@ -79,15 +72,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!mounted) return
+
         setSession(session)
         setUser(session?.user ?? null)
-        if (session?.user) await fetchProfile(session.user.id)
+
+        if (session?.user) {
+          // ── CRÍTICO: verificar localStorage ANTES de setLoading(false) ──
+          // Sem isso, há uma janela onde loading=false mas quizDone=false,
+          // fazendo o guard redirecionar para /quiz e desmontar o Layout.
+          const localDone = localStorage.getItem(`quiz_done_${session.user.id}`) === '1'
+          if (localDone) setQuizDone(true)
+
+          // Busca perfil (e já atualiza quizDone via fetchProfile se quiz_completo=true)
+          await fetchProfile(session.user.id)
+        }
       } catch (err) {
         console.error('Erro auth:', err)
       } finally {
         if (mounted) {
           clearTimeout(timeout)
-          setLoading(false)
+          setLoading(false) // quizDone já está correto aqui
         }
       }
     }
@@ -95,12 +99,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return
+
+        // INITIAL_SESSION já é tratado por init() — ignorar para evitar race condition
+        if (event === 'INITIAL_SESSION') return
+
         setSession(session)
         setUser(session?.user ?? null)
-        if (session?.user) await fetchProfile(session.user.id)
-        else setProfile(null)
+
+        if (session?.user) {
+          // Novo login: verificar localStorage imediatamente
+          if (event === 'SIGNED_IN') {
+            const localDone = localStorage.getItem(`quiz_done_${session.user.id}`) === '1'
+            if (localDone) setQuizDone(true)
+          }
+          await fetchProfile(session.user.id)
+        } else {
+          setProfile(null)
+        }
+
         setLoading(false)
       }
     )

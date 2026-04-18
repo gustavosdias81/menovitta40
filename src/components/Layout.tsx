@@ -21,6 +21,11 @@ export default function Layout() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [modalNotif, setModalNotif] = useState<Notificacao | null>(null)
 
+  // Scroll ao topo a cada troca de aba
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }, [location.pathname])
+
   useEffect(() => {
     if (!user) return
 
