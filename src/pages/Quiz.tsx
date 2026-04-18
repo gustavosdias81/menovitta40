@@ -79,6 +79,7 @@ const STEPS = [
 
 export default function Quiz() {
   const { user, refreshProfile, marcarQuizCompleto } = useAuth()
+  const primeiroNome = (user?.user_metadata?.nome as string | undefined)?.split(' ')[0] || ''
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -273,11 +274,12 @@ export default function Quiz() {
               <img src="/Logo.png" alt="Menovitta" className="w-24 h-24 object-contain drop-shadow-lg" />
             </div>
             <h2 className="font-serif text-2xl font-bold text-gray-800 mb-3">
-              Olá, seja bem-vinda!
+              {primeiroNome ? `Olá, ${primeiroNome}! 🌸` : 'Olá, seja bem-vinda! 🌸'}
             </h2>
             <p className="text-gray-500 leading-relaxed max-w-sm mx-auto text-sm mb-6">
-              Este questionário vai nos ajudar a entender sua fase atual e criar um plano
-              totalmente personalizado para você. São apenas <strong className="text-rosa-600">7 passos rápidos</strong>.
+              {primeiroNome ? `${primeiroNome}, ` : ''}Este questionário vai nos ajudar a entender sua fase atual
+              e criar um plano totalmente personalizado para você.
+              São apenas <strong className="text-rosa-600">7 passos rápidos</strong>.
             </p>
             <div className="grid grid-cols-1 gap-2 max-w-xs mx-auto text-left">
               {[

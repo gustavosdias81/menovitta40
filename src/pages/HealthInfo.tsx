@@ -152,11 +152,12 @@ const INFO_POR_FASE: Record<FaseMenopausa, { titulo: string; descricao: string; 
 }
 
 export default function HealthInfo() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const navigate = useNavigate()
   const fase = (profile?.fase_menopausa || 'menopausa') as FaseMenopausa
   const info = INFO_POR_FASE[fase]
   const heroImg = HERO_IMGS[fase]
+  const primeiroNome = (profile?.nome || (user?.user_metadata?.nome as string | undefined) || '').split(' ')[0]
 
   return (
     <div className="min-h-screen bg-offwhite pb-8">
@@ -174,7 +175,9 @@ export default function HealthInfo() {
         />
         {/* Texto sobre a imagem */}
         <div className="absolute bottom-0 left-0 right-0 p-5">
-          <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-1">Informações da Sua Fase</p>
+          <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-1">
+            {primeiroNome ? `Seu Perfil, ${primeiroNome}` : 'Informações da Sua Fase'}
+          </p>
           <h1 className="font-serif text-2xl font-bold text-white drop-shadow">{info.titulo}</h1>
           <p className="text-white/90 text-sm leading-relaxed mt-1">{info.descricao}</p>
         </div>

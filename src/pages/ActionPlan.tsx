@@ -827,30 +827,79 @@ const NUTRICAO_POR_FASE: Record<FaseMenopausa, { dicas: string[]; alimentos: str
   },
 }
 
-// ── MENTALIDADE POR FASE ──────────────────────────────────────────────────────
-const MENTALIDADE_POR_FASE: Record<FaseMenopausa, { praticas: { titulo: string; desc: string; icon: string }[] }> = {
+// ── MENTALIDADE POR FASE (com detalhes para modal) ───────────────────────────
+type PraticaMente = { titulo: string; desc: string; icon: string; detalhe: string }
+const MENTALIDADE_POR_FASE: Record<FaseMenopausa, { praticas: PraticaMente[] }> = {
   pre_menopausa: {
     praticas: [
-      { titulo: 'Meditação Matinal', desc: '10 minutos para centrar a mente e reduzir ansiedade.', icon: '🧘‍♀️' },
-      { titulo: 'Diário de Gratidão', desc: '3 coisas positivas ao final do dia.', icon: '📓' },
-      { titulo: 'Sono de Qualidade', desc: '7–8h. Evite telas 1h antes de dormir.', icon: '🌙' },
-      { titulo: 'Conexão Social', desc: 'Vínculos afetivos protegem a saúde mental.', icon: '💗' },
+      {
+        titulo: 'Meditação Matinal', icon: '🧘‍♀️',
+        desc: '10 minutos ao acordar para centrar a mente.',
+        detalhe: 'Reserve os primeiros 10 minutos do dia para sentar em silêncio, fechar os olhos e focar na respiração. Quando pensamentos aparecerem, observe-os sem julgamento e volte ao foco. Essa prática regula o cortisol matinal — hormônio do estresse que está elevado nesta fase — e prepara a mente para o dia com mais clareza e menos ansiedade. Estudos mostram redução de 40% nos episódios de ansiedade em mulheres na pré-menopausa que praticam meditação diária por 8 semanas.',
+      },
+      {
+        titulo: 'Diário de Gratidão', icon: '📓',
+        desc: 'Anote 3 coisas positivas ao final do dia.',
+        detalhe: 'Antes de dormir, escreva 3 coisas pelas quais você é grata hoje — podem ser simples como uma boa refeição, uma conversa agradável ou um momento de sol. Essa prática re-treina o cérebro para notar o positivo, combatendo o viés negativo natural da mente. Melhora a qualidade do sono, reduz ruminação e aumenta a sensação de bem-estar. Em 21 dias de prática, é possível notar mudança significativa no humor e na perspectiva sobre a vida.',
+      },
+      {
+        titulo: 'Sono de Qualidade', icon: '🌙',
+        desc: '7–8h com rotina consistente de horários.',
+        detalhe: 'O sono é quando o corpo produz GH (hormônio do crescimento), repara músculos e consolida memórias. Na pré-menopausa, as flutuações hormonais já começam a prejudicar o sono. Estratégias: mantenha horários fixos (mesmo nos fins de semana), elimine telas 60 min antes de dormir, mantenha o quarto fresco (18–20°C), escuro e silencioso. Evite cafeína após 14h e álcool à noite. Suplemento de magnésio glicina (300mg) e melatonina de baixa dose (0,5–1mg) podem ajudar com orientação médica.',
+      },
+      {
+        titulo: 'Conexão Social', icon: '💗',
+        desc: 'Vínculos afetivos protegem o cérebro e o coração.',
+        detalhe: 'Isolamento social é fator de risco equivalente a fumar 15 cigarros por dia para saúde cardiovascular e cognitiva. Cultive relações próximas: ligue para amigas regularmente, participe de grupos (treino, leitura, hobbies), agende encontros presenciais. Relações de qualidade reduzem cortisol, aumentam ocitocina e serotonina, e são um dos maiores preditores de longevidade. Uma boa rede social também cria responsabilidade social para manter hábitos saudáveis.',
+      },
     ],
   },
   menopausa: {
     praticas: [
-      { titulo: 'Respiração 4-7-8', desc: 'Inspire 4s, segure 7s, expire 8s. Alivia fogachos.', icon: '🫁' },
-      { titulo: 'Mindfulness', desc: '15 min/dia reduz sintomas em até 30%.', icon: '🧘‍♀️' },
-      { titulo: 'Autocuidado', desc: 'Banho relaxante, leitura, música — sem culpa.', icon: '✨' },
-      { titulo: 'Reformulação Positiva', desc: 'Menopausa é transição, não fim.', icon: '💪' },
+      {
+        titulo: 'Respiração 4-7-8', icon: '🫁',
+        desc: 'Técnica comprovada para aliviar fogachos na hora.',
+        detalhe: 'Inspire pelo nariz por 4 segundos → segure o ar por 7 segundos → expire lentamente pela boca por 8 segundos. Repita 4 vezes. Esta técnica ativa o sistema nervoso parassimpático, revertendo a resposta de "luta ou fuga" que desencadeia os fogachos. Ao sentir um fogacho chegando, inicie imediatamente a respiração: estudos mostram redução de 39% na intensidade dos episódios. Pratique também diariamente (manhã e noite) para treinamento do sistema nervoso autônomo.',
+      },
+      {
+        titulo: 'Mindfulness', icon: '🧘‍♀️',
+        desc: '15 min/dia reduz sintomas da menopausa em até 30%.',
+        detalhe: 'Mindfulness é a prática de focar completamente no momento presente, sem julgamento. Diferente de meditação formal, pode ser feito em qualquer atividade: comer com atenção plena, lavar louça observando as sensações, caminhar percebendo cada passo. Estudos específicos em mulheres na menopausa mostram redução de 30% em fogachos, 40% em insônia e 50% em irritabilidade com 8 semanas de prática. O app gratuito "Insight Timer" tem guias em português para iniciantes.',
+      },
+      {
+        titulo: 'Autocuidado Intencional', icon: '✨',
+        desc: 'Rituais de cuidado próprio sem culpa — você merece.',
+        detalhe: 'Autocuidado não é egoísmo: é manutenção. Nas mulheres na menopausa, o cortisol elevado acelera o envelhecimento, prejudica o sono e amplifica os sintomas. Rituais de prazer reduzem cortisol e aumentam serotonina. Exemplos: banho quente com sal de Epsom (magnésio pela pele), leitura de prazer por 20 min, música que você ama, massagem nos pés, skincare cuidadoso, jardinagem. O segredo é a regularidade — escolha 1 ou 2 rituais e faça todo dia, mesmo que por poucos minutos.',
+      },
+      {
+        titulo: 'Reformulação Positiva', icon: '💪',
+        desc: 'Menopausa é transição de poder, não de fim.',
+        detalhe: 'A forma como você pensa sobre a menopausa afeta diretamente sua experiência física dela. Culturas que veem a menopausa como libertação (fim de menstruação, gravidez) reportam significativamente menos sintomas do que culturas que a veem como declínio. Pratique substituir pensamentos negativos ("estou ficando velha", "estou perdendo feminilidade") por perspectivas de crescimento ("estou ganhando sabedoria", "meu corpo está se adaptando", "esta fase traz liberdade"). Journaling e terapia cognitivo-comportamental são ferramentas poderosas aqui.',
+      },
     ],
   },
   pos_menopausa: {
     praticas: [
-      { titulo: 'Estimulação Cognitiva', desc: 'Jogos de memória e leitura protegem o cérebro.', icon: '🧠' },
-      { titulo: 'Vida Social Ativa', desc: 'Grupos e atividades reduzem depressão.', icon: '🤝' },
-      { titulo: 'Propósito de Vida', desc: 'Hobbies e metas aumentam felicidade.', icon: '🌟' },
-      { titulo: 'Relaxamento Diário', desc: 'Estresse crônico acelera envelhecimento.', icon: '🌸' },
+      {
+        titulo: 'Estimulação Cognitiva', icon: '🧠',
+        desc: 'Exercite o cérebro diariamente para prevenir declínio.',
+        detalhe: 'O cérebro tem neuroplasticidade — capacidade de criar novas conexões — em qualquer idade, mas precisa de desafios para isso. Atividades que exigem aprendizado novo são as mais protetoras: aprender um instrumento, idioma, artesanato, culinária nova, programação. Jogos de memória, palavras cruzadas e sudoku ajudam mas têm efeito limitado se forem sempre os mesmos. Combine estimulação cognitiva com exercício físico: a combinação de aeróbico + força + aprendizado reduz o risco de Alzheimer em até 60%.',
+      },
+      {
+        titulo: 'Vida Social Ativa', icon: '🤝',
+        desc: 'Socializar é tão importante quanto exercício para longevidade.',
+        detalhe: 'Após a menopausa, quando filhos crescem, carreiras mudam e relacionamentos evoluem, o isolamento social pode surgir de forma gradual e perigosa. Mulheres socialmente ativas vivem em média 7 anos mais e têm 50% menos risco de demência. Ações práticas: participe de um grupo de treino presencial (duplo benefício: social + físico), faça voluntariado, ingresse em grupos de interesses (leitura, culinária, viagem), mantenha contato semanal com amigas próximas. Qualidade supera quantidade: 3-4 relações profundas protegem mais que muitos conhecidos.',
+      },
+      {
+        titulo: 'Propósito e Significado', icon: '🌟',
+        desc: 'Ter um "por quê" aumenta longevidade e felicidade.',
+        detalhe: 'O conceito japonês "Ikigai" (razão de ser) é um dos fatores explicativos da longevidade em Okinawa. Mulheres com forte senso de propósito têm 2,4x menos risco de doença cardiovascular. Propósito não precisa ser grandioso: pode ser cultivar um jardim, apoiar a família, ensinar algo que sabe, criar artesanato, cuidar de animais. Reflita: o que te faz levantar com vontade? O que você faria mesmo sem pagamento? O que o mundo precisa que você pode oferecer? Esse cruzamento é seu propósito.',
+      },
+      {
+        titulo: 'Relaxamento Profundo', icon: '🌸',
+        desc: 'Estresse crônico acelera envelhecimento — controle é possível.',
+        detalhe: 'O estresse crônico eleva cortisol continuamente, o que na pós-menopausa (sem o efeito protetor do estrogênio) acelera inflamação, encurtamento de telômeros (marcadores de envelhecimento celular), perda óssea e muscular. Técnicas de relaxamento profundo: yoga restaurativa (posições passivas por 5–10 min), body scan (varredura corporal de atenção dos pés à cabeça), banho de floresta (caminhada lenta em natureza por 20 min), respiração diafragmática. Consistência é mais importante que duração — 10 min diários superam 1h semanal.',
+      },
     ],
   },
 }
@@ -899,7 +948,9 @@ export default function ActionPlan() {
   const { user, profile } = useAuth()
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'treino' | 'nutricao' | 'mentalidade'>('treino')
+  const [activeTab, setActiveTab] = useState<'treino' | 'mentalidade'>('treino')
+  const [menteTab, setMenteTab] = useState<'praticas' | 'sono'>('praticas')
+  const [menteModal, setMenteModal] = useState<PraticaMente | null>(null)
   const [local, setLocal] = useState<'academia' | 'casa'>('academia')
   const [trilhaAtiva, setTrilhaAtiva] = useState<TrilhaAtiva>('8sem')
   const [semanaAtiva, setSemanaAtiva] = useState(0)
@@ -1017,7 +1068,6 @@ export default function ActionPlan() {
 
   const tabs = [
     { key: 'treino' as const, label: 'Treino', icon: <Dumbbell size={16} /> },
-    { key: 'nutricao' as const, label: 'Nutrição', icon: <Apple size={16} /> },
     { key: 'mentalidade' as const, label: 'Mente', icon: <Brain size={16} /> },
   ]
 
@@ -1141,30 +1191,6 @@ export default function ActionPlan() {
           </div>
         </div>
       )}
-
-      {/* Metas nutricionais */}
-      <div className="card mb-4">
-        <h2 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <Flame size={16} className="text-orange-500" /> Metas Diárias
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'Calorias', valor: metas.calorias, unidade: 'kcal', color: 'bg-orange-50 text-orange-600', icon: <Flame size={16} /> },
-            { label: 'Proteínas', valor: metas.proteinas, unidade: 'g', color: 'bg-red-50 text-red-500', icon: <Dumbbell size={16} /> },
-            { label: 'Gorduras', valor: metas.gorduras, unidade: 'g', color: 'bg-yellow-50 text-yellow-600', icon: <Droplets size={16} /> },
-            { label: 'Carboidratos', valor: metas.carboidratos, unidade: 'g', color: 'bg-blue-50 text-blue-500', icon: <Apple size={16} /> },
-          ].map((m, i) => (
-            <div key={i} className={`rounded-2xl p-3 ${m.color}`}>
-              <div className="flex items-center gap-1.5 mb-1 opacity-70">
-                {m.icon}
-                <span className="text-xs font-medium">{m.label}</span>
-              </div>
-              <p className="text-2xl font-bold">{m.valor}</p>
-              <p className="text-xs opacity-60">{m.unidade} / dia</p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4">
@@ -1462,70 +1488,7 @@ export default function ActionPlan() {
         </div>
       )}
 
-      {/* ═══ ABA NUTRIÇÃO ═══ */}
-      {activeTab === 'nutricao' && (
-        <div className="space-y-4">
-          {plano?.nutricao_descricao ? (
-            <div className="card">
-              <h3 className="font-semibold text-gray-800 mb-2">Protocolo da Consultora</h3>
-              <p className="text-base text-gray-600 leading-relaxed whitespace-pre-wrap">{plano.nutricao_descricao}</p>
-            </div>
-          ) : (
-            <>
-              {/* Banner nutrição */}
-              <div className="relative rounded-2xl overflow-hidden h-32 mb-1">
-                <img
-                  src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80"
-                  alt="Nutrição saudável"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 flex flex-col justify-end p-4"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
-                  <p className="font-serif text-lg font-bold text-white">🥗 Nutrição da Sua Fase</p>
-                  <p className="text-white/80 text-xs">Alimentos que fazem diferença</p>
-                </div>
-              </div>
-              <div className="card">
-                <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
-                  <Heart size={16} className="text-rosa-500" /> Dicas Essenciais
-                </h3>
-                <div className="space-y-2.5">
-                  {nutricao.dicas.map((dica, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-rosa-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-xs text-rosa-600 font-bold">{i + 1}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 leading-relaxed">{dica}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="card">
-                <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
-                  <Apple size={16} className="text-green-500" /> Priorize
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {nutricao.alimentos.map((a, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium">✓ {a}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="card">
-                <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center gap-2">
-                  <Moon size={16} className="text-red-400" /> Evite
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {nutricao.evitar.map((a, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-red-50 text-red-500 rounded-full text-sm font-medium">✗ {a}</span>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ═══ ABA MENTALIDADE ═══ */}
+      {/* ═══ ABA MENTE ═══ */}
       {activeTab === 'mentalidade' && (
         <div className="space-y-3">
           {plano?.mentalidade_descricao ? (
@@ -1535,30 +1498,107 @@ export default function ActionPlan() {
             </div>
           ) : (
             <>
-              {/* Banner mentalidade */}
+              {/* Banner */}
               <div className="relative rounded-2xl overflow-hidden h-32 mb-1">
-                <img
-                  src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80"
-                  alt="Meditação e bem-estar"
-                  className="w-full h-full object-cover object-top"
-                />
+                <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80"
+                  alt="Mente" className="w-full h-full object-cover object-top" />
                 <div className="absolute inset-0 flex flex-col justify-end p-4"
-                  style={{ background: 'linear-gradient(to top, rgba(88,28,135,0.7) 0%, transparent 100%)' }}>
+                  style={{ background: 'linear-gradient(to top, rgba(88,28,135,0.75) 0%, transparent 100%)' }}>
                   <p className="font-serif text-lg font-bold text-white">🧘‍♀️ Mente em Equilíbrio</p>
-                  <p className="text-white/80 text-xs">Práticas para seu bem-estar mental</p>
+                  <p className="text-white/80 text-xs">Toque em cada prática para saber mais</p>
                 </div>
               </div>
-              {mentalidade.praticas.map((p, i) => (
-                <div key={i} className="card flex items-start gap-4">
-                  <span className="text-3xl">{p.icon}</span>
-                  <div>
-                    <p className="font-semibold text-gray-800 text-base mb-1">{p.titulo}</p>
-                    <p className="text-sm text-gray-500 leading-relaxed">{p.desc}</p>
-                  </div>
+
+              {/* Sub-tabs: Práticas | Higiene do Sono */}
+              <div className="flex gap-1 bg-gray-100 rounded-2xl p-1">
+                {([
+                  { key: 'praticas' as const, label: '🧠 Práticas Mentais' },
+                  { key: 'sono' as const, label: '🌙 Higiene do Sono' },
+                ]).map(t => (
+                  <button key={t.key} onClick={() => setMenteTab(t.key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      menteTab === t.key ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── PRÁTICAS MENTAIS ── */}
+              {menteTab === 'praticas' && (
+                <div className="space-y-2">
+                  {mentalidade.praticas.map((p, i) => (
+                    <button key={i} onClick={() => setMenteModal(p)}
+                      className="card w-full text-left flex items-center gap-4 active:scale-[0.98] transition-transform">
+                      <span className="text-3xl flex-shrink-0">{p.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 text-sm">{p.titulo}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{p.desc}</p>
+                      </div>
+                      <ChevronDown size={16} className="text-gray-300 flex-shrink-0 -rotate-90" />
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {/* ── HIGIENE DO SONO ── */}
+              {menteTab === 'sono' && (
+                <div className="space-y-3">
+                  <div className="card border-2 border-dashed border-purple-200 bg-purple-50/50 text-center py-6">
+                    <p className="text-3xl mb-2">🌙</p>
+                    <p className="font-semibold text-purple-700 text-sm mb-1">Protocolo de Higiene do Sono</p>
+                    <p className="text-xs text-purple-500 leading-relaxed px-4">
+                      Em breve você terá acesso ao protocolo completo de higiene do sono,
+                      desenvolvido especialmente para esta fase.
+                    </p>
+                  </div>
+
+                  {/* Dicas gerais de sono enquanto o protocolo não está disponível */}
+                  {[
+                    { hora: '20h', dica: 'Pare de comer 2–3h antes de dormir', icon: '🍽️' },
+                    { hora: '21h', dica: 'Diminua luzes e evite telas brilhantes', icon: '💡' },
+                    { hora: '21h30', dica: 'Banho morno ajuda a baixar a temperatura corporal', icon: '🚿' },
+                    { hora: '22h', dica: 'Leitura leve, meditação ou respiração 4-7-8', icon: '📖' },
+                    { hora: '22h30', dica: 'Quarto fresco (18–20°C), escuro e silencioso', icon: '❄️' },
+                    { hora: '23h', dica: 'Horário alvo de dormir — consistência é chave!', icon: '😴' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm">
+                      <div className="w-12 text-center flex-shrink-0">
+                        <p className="text-[10px] text-purple-500 font-bold">{item.hora}</p>
+                      </div>
+                      <span className="text-xl flex-shrink-0">{item.icon}</span>
+                      <p className="text-sm text-gray-600 leading-snug">{item.dica}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ═══ MODAL DETALHE PRÁTICA MENTAL ═══ */}
+      {menteModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={() => setMenteModal(null)}>
+          <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{menteModal.icon}</span>
+                <h2 className="font-semibold text-gray-800 text-base">{menteModal.titulo}</h2>
+              </div>
+              <button onClick={() => setMenteModal(null)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <X size={16} className="text-gray-500" />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-500 mb-3 italic">{menteModal.desc}</p>
+              <div className="h-px bg-gray-100 mb-4" />
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{menteModal.detalhe}</p>
+            </div>
+          </div>
         </div>
       )}
 

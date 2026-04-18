@@ -355,8 +355,8 @@ export default function NutritionalAI() {
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
-        <h1 className="page-title">IA Nutricional</h1>
-        <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">IA Menovitta</span>
+        <h1 className="page-title">Nutrição</h1>
+        <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">Menovitta</span>
       </div>
       <p className="page-subtitle mb-4">Controle seus macros e receba sugestões personalizadas</p>
 
@@ -403,17 +403,17 @@ export default function NutritionalAI() {
           ))}
         </div>
 
-        {/* Dica IA do dia */}
+        {/* Dica Menovitta */}
         <div className="mt-3 bg-rosa-50 rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={13} className="text-rosa-500" />
-            <span className="text-xs font-semibold text-rosa-700">Dica do Dia</span>
+            <span className="text-xs font-semibold text-rosa-700">Dica Menovitta</span>
           </div>
           <p className="text-xs text-rosa-600">
             {consumido.calorias === 0
               ? `Comece registrando suas refeições. Sua meta é ${meta.calorias} kcal com ${meta.proteinas}g de proteína.`
               : faltam.calorias > 0
-                ? `Faltam ${Math.round(faltam.calorias)} kcal e ${Math.round(faltam.proteinas)}g de proteína. Veja as sugestões da IA abaixo!`
+                ? `Faltam ${Math.round(faltam.calorias)} kcal e ${Math.round(faltam.proteinas)}g de proteína. Veja as sugestões abaixo!`
                 : 'Parabéns! Você atingiu sua meta calórica hoje. Priorize proteína nas próximas refeições.'}
           </p>
         </div>
@@ -422,8 +422,8 @@ export default function NutritionalAI() {
       {/* ── Tabs ── */}
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4">
         {[
-          { key: 'scanner'  as const, label: 'Scanner de Prato', icon: <Camera size={15} /> },
-          { key: 'sugestoes' as const, label: 'Sugestões IA',     icon: <ChefHat size={15} /> },
+          { key: 'scanner'  as const, label: 'Scanner', icon: <Camera size={15} /> },
+          { key: 'sugestoes' as const, label: 'Sugestões', icon: <ChefHat size={15} /> },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
@@ -713,6 +713,74 @@ export default function NutritionalAI() {
           )})()}
         </div>
       )}
+
+      {/* ── Orientações Nutricionais da Fase ── */}
+      {(() => {
+        const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
+        const nutr: Record<string, { dicas: string[]; alimentos: string[]; evitar: string[] }> = {
+          pre_menopausa: {
+            dicas: ['Priorize 25–30g de proteína por refeição', 'Inclua fibras em cada refeição', 'Mínimo 2L de água por dia', 'Refeições a cada 3–4 horas'],
+            alimentos: ['Frango e peixe', 'Ovos', 'Quinoa e aveia', 'Frutas vermelhas', 'Folhosos verdes', 'Azeite extra-virgem'],
+            evitar: ['Açúcar refinado', 'Ultra processados', 'Álcool em excesso', 'Excesso de sódio'],
+          },
+          menopausa: {
+            dicas: ['Proteína: 1,3–1,5g por kg/dia', 'Priorize cálcio e Vitamina D', 'Reduza carboidratos simples', 'Inclua fitoestrógenos (soja, linhaça)'],
+            alimentos: ['Sardinha e salmão', 'Iogurte grego', 'Linhaça e chia', 'Grão-de-bico', 'Tofu', 'Couve e brócolis'],
+            evitar: ['Cafeína excessiva', 'Alimentos picantes', 'Álcool', 'Farinhas brancas'],
+          },
+          pos_menopausa: {
+            dicas: ['Proteína: 1,4–1,6g/kg contra sarcopenia', 'Cálcio + Vit D diariamente', 'Ômega-3 para coração e cérebro', 'Refeições menores e frequentes'],
+            alimentos: ['Peixes gordurosos', 'Ovos caipiras', 'Laticínios com Ca', 'Vegetais coloridos', 'Sementes', 'Chá verde'],
+            evitar: ['Sódio elevado', 'Gordura saturada', 'Álcool', 'Açúcar refinado'],
+          },
+        }
+        const n = nutr[fase] || nutr['menopausa']
+        return (
+          <div className="mt-4 space-y-3">
+            <div className="relative rounded-2xl overflow-hidden h-24">
+              <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80"
+                alt="Nutrição" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 flex flex-col justify-end p-3"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)' }}>
+                <p className="font-serif text-base font-bold text-white">🥗 Orientações da Sua Fase</p>
+              </div>
+            </div>
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-2">
+                <Sparkles size={14} className="text-rosa-500" /> Dicas Essenciais Menovitta
+              </h3>
+              <div className="space-y-2">
+                {n.dicas.map((dica, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <div className="w-4 h-4 rounded-full bg-rosa-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-[9px] text-rosa-600 font-bold">{i + 1}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">{dica}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="card">
+                <p className="text-xs font-semibold text-green-700 mb-2">✓ Priorize</p>
+                <div className="space-y-1">
+                  {n.alimentos.map((a, i) => (
+                    <p key={i} className="text-[11px] text-gray-600">• {a}</p>
+                  ))}
+                </div>
+              </div>
+              <div className="card">
+                <p className="text-xs font-semibold text-red-500 mb-2">✗ Evite</p>
+                <div className="space-y-1">
+                  {n.evitar.map((a, i) => (
+                    <p key={i} className="text-[11px] text-gray-600">• {a}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Histórico do dia ── */}
       {todayLogs.length > 0 && (

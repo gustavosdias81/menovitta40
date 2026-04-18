@@ -8,7 +8,7 @@ import type { Notificacao } from '../types'
 const NAV_ITEMS = [
   { path: '/perfil', label: 'Perfil', icon: User },
   { path: '/plano', label: 'Plano', icon: ClipboardList },
-  { path: '/scanner', label: 'Scanner', icon: Camera },
+  { path: '/scanner', label: 'Nutrição', icon: Camera },
   { path: '/comunidade', label: 'Social', icon: Users },
   { path: '/configuracoes', label: 'Config', icon: Settings },
 ]
