@@ -904,6 +904,86 @@ const MENTALIDADE_POR_FASE: Record<FaseMenopausa, { praticas: PraticaMente[] }> 
   },
 }
 
+// ── GAMIFICAÇÃO ───────────────────────────────────────────────────────────────
+const NIVEIS = [
+  { nivel: 1, nome: 'Semente',     icone: '🌱', cor: 'from-green-400 to-green-600',    minXP: 0    },
+  { nivel: 2, nome: 'Ativa',       icone: '⚡', cor: 'from-yellow-400 to-amber-500',   minXP: 100  },
+  { nivel: 3, nome: 'Determinada', icone: '💪', cor: 'from-blue-400 to-blue-600',      minXP: 250  },
+  { nivel: 4, nome: 'Guerreira',   icone: '🔥', cor: 'from-rosa-400 to-rosa-600',      minXP: 500  },
+  { nivel: 5, nome: 'Campeã',      icone: '🏆', cor: 'from-ouro-300 to-ouro-500',      minXP: 1000 },
+]
+
+interface Badge { id: string; icon: string; titulo: string; desc: string; conquistada: boolean }
+
+function calcularXP(logs: TreinoLog[]): number {
+  if (!logs.length) return 0
+  let xp = 0
+  // 10 XP por treino base
+  xp += logs.length * 10
+  // +5 XP por treino com duração ≥45 min
+  logs.forEach(l => {
+    const minutos = parseInt(l.duracao || '0')
+    if (minutos >= 45) xp += 5
+  })
+  // Agrupar por semana ISO
+  const porSemana: Record<string, number> = {}
+  logs.forEach(l => {
+    const d = new Date(l.data + 'T12:00:00')
+    const jan1 = new Date(d.getFullYear(), 0, 1)
+    const sem = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+    const chave = `${d.getFullYear()}-${sem}`
+    porSemana[chave] = (porSemana[chave] || 0) + 1
+  })
+  Object.values(porSemana).forEach(qtd => {
+    if (qtd >= 3) xp += 20   // semana com ≥3 treinos
+    if (qtd >= 5) xp += 15   // bônus semana completa (≥5)
+  })
+  return xp
+}
+
+function getNivel(xp: number) {
+  let nivel = NIVEIS[0]
+  for (const n of NIVEIS) { if (xp >= n.minXP) nivel = n }
+  return nivel
+}
+
+function calcularBadges(logs: TreinoLog[], streak: number): Badge[] {
+  const total = logs.length
+  const academiaCount = logs.filter(l => l.local === 'academia').length
+  const mesAtual = new Date().toISOString().slice(0, 7)
+  const treinesMes = logs.filter(l => l.data.startsWith(mesAtual)).length
+  const temSemanaCheia = (() => {
+    const porSemana: Record<string, number> = {}
+    logs.forEach(l => {
+      const d = new Date(l.data + 'T12:00:00')
+      const jan1 = new Date(d.getFullYear(), 0, 1)
+      const sem = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+      const chave = `${d.getFullYear()}-${sem}`
+      porSemana[chave] = (porSemana[chave] || 0) + 1
+    })
+    return Object.values(porSemana).some(q => q >= 5)
+  })()
+
+  return [
+    { id: 'primeiro',   icon: '🌟', titulo: 'Primeiro Passo',   desc: 'Complete seu 1º treino',          conquistada: total >= 1      },
+    { id: 'cincoTreinos', icon: '💪', titulo: 'Em Ritmo',       desc: '5 treinos concluídos',             conquistada: total >= 5      },
+    { id: 'streak7',    icon: '🔥', titulo: 'Semana de Fogo',   desc: '7 dias consecutivos',             conquistada: streak >= 7     },
+    { id: 'semanaCheia',icon: '⭐', titulo: 'Semana Perfeita',  desc: '5 treinos numa semana',           conquistada: temSemanaCheia  },
+    { id: '30treinos',  icon: '🎯', titulo: 'Comprometida',     desc: '30 treinos no total',             conquistada: total >= 30     },
+    { id: 'academia20', icon: '🏋️', titulo: 'Academia Pro',     desc: '20 treinos na academia',          conquistada: academiaCount >= 20 },
+    { id: 'desafio',    icon: '📅', titulo: 'Desafiante',       desc: '12 treinos num mês',              conquistada: treinesMes >= 12},
+    { id: '50treinos',  icon: '🦁', titulo: 'Leoa',             desc: '50 treinos concluídos',           conquistada: total >= 50     },
+    { id: '100treinos', icon: '🏆', titulo: 'Campeã',           desc: '100 treinos — lenda!',            conquistada: total >= 100    },
+  ]
+}
+
+function calcularDesafioMensal(logs: TreinoLog[]) {
+  const mesAtual = new Date().toISOString().slice(0, 7)
+  const feitos = logs.filter(l => l.data.startsWith(mesAtual)).length
+  const meta = 12
+  return { feitos, meta, pct: Math.min(100, Math.round((feitos / meta) * 100)) }
+}
+
 const intensidadeColor = (i: string) => {
   if (i === 'Muito Leve' || i === 'Repouso') return 'bg-blue-50 text-blue-600'
   if (i === 'Leve' || i === 'Leve-Moderada') return 'bg-green-50 text-green-600'
@@ -1058,6 +1138,17 @@ export default function ActionPlan() {
   const streak = calcularStreak(treinoLogs)
   const treinoHojeConcluido = treinoLogs.some(l => l.data === hoje)
 
+  // Gamificação
+  const xpTotal = calcularXP(treinoLogs)
+  const nivel = getNivel(xpTotal)
+  const nivelIndex = NIVEIS.findIndex(n => n.nivel === nivel.nivel)
+  const proximoNivel = NIVEIS[nivelIndex + 1] || null
+  const xpParaProximo = proximoNivel ? proximoNivel.minXP - nivel.minXP : 0
+  const xpNoNivel = proximoNivel ? xpTotal - nivel.minXP : xpParaProximo
+  const pctXP = proximoNivel ? Math.min(100, Math.round((xpNoNivel / xpParaProximo) * 100)) : 100
+  const badges = calcularBadges(treinoLogs, streak)
+  const desafio = calcularDesafioMensal(treinoLogs)
+
   // Mini-calendário: últimos 21 dias
   const ultimos21 = Array.from({ length: 21 }, (_, i) => {
     const d = new Date()
@@ -1139,6 +1230,83 @@ export default function ActionPlan() {
         <p className="text-[10px] text-gray-400 mt-2 text-center">
           Verde = treino feito · Rosa = hoje
         </p>
+      </div>
+
+      {/* ── GAMIFICAÇÃO CARD ── */}
+      <div className="card mb-4 overflow-hidden">
+        {/* Nível + XP */}
+        <div className={`-mx-4 -mt-4 mb-4 bg-gradient-to-r ${nivel.cor} px-4 pt-4 pb-5`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+              {nivel.icone}
+            </div>
+            <div className="flex-1">
+              <p className="text-white/70 text-[10px] font-semibold uppercase tracking-wider">Nível {nivel.nivel}</p>
+              <p className="text-white font-bold text-lg leading-tight">{nivel.nome}</p>
+              <p className="text-white/80 text-xs">{xpTotal} XP total</p>
+            </div>
+            {proximoNivel && (
+              <div className="text-right">
+                <p className="text-white/60 text-[10px]">próximo</p>
+                <p className="text-white text-sm font-bold">{proximoNivel.icone} {proximoNivel.nome}</p>
+                <p className="text-white/70 text-[10px]">{proximoNivel.minXP - xpTotal} XP</p>
+              </div>
+            )}
+          </div>
+          {/* Barra de XP */}
+          <div className="relative h-2 bg-white/20 rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-700"
+              style={{ width: `${pctXP}%` }}
+            />
+          </div>
+          <p className="text-white/60 text-[10px] mt-1 text-right">{pctXP}% para {proximoNivel?.nome || 'máximo'}</p>
+        </div>
+
+        {/* Desafio mensal */}
+        <div className="mb-4 p-3 bg-rosa-50 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📅</span>
+              <div>
+                <p className="text-sm font-bold text-gray-800">Desafio do Mês</p>
+                <p className="text-xs text-gray-500">{desafio.feitos} de {desafio.meta} treinos</p>
+              </div>
+            </div>
+            <span className={`text-sm font-bold ${desafio.feitos >= desafio.meta ? 'text-green-600' : 'text-rosa-600'}`}>
+              {desafio.feitos >= desafio.meta ? '✅ Completo!' : `${desafio.pct}%`}
+            </span>
+          </div>
+          <div className="h-2 bg-rosa-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${desafio.feitos >= desafio.meta ? 'bg-green-500' : 'bg-rosa-500'}`}
+              style={{ width: `${desafio.pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Medalhas */}
+        <div>
+          <p className="text-sm font-bold text-gray-700 mb-2">
+            🏅 Medalhas <span className="text-xs font-normal text-gray-400">({badges.filter(b => b.conquistada).length}/{badges.length})</span>
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {badges.map(badge => (
+              <div
+                key={badge.id}
+                className={`rounded-xl p-2 flex flex-col items-center gap-1 text-center transition-all ${
+                  badge.conquistada
+                    ? 'bg-ouro-50 border border-ouro-200'
+                    : 'bg-gray-50 border border-gray-100 opacity-50 grayscale'
+                }`}
+              >
+                <span className="text-xl">{badge.icon}</span>
+                <p className="text-[10px] font-bold text-gray-700 leading-tight">{badge.titulo}</p>
+                <p className="text-[9px] text-gray-400 leading-tight">{badge.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Treino de hoje — destaque com imagem + botão marcar */}

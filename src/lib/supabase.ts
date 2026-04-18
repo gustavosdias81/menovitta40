@@ -315,3 +315,67 @@ export async function deleteCommunityPost(postId: string) {
     .eq('id', postId)
   return { error }
 }
+
+// ── RANKING MENSAL ────────────────────────────────────────────────────────────
+
+export interface RankingEntry {
+  user_id: string
+  nome: string
+  primeiroNome: string
+  treinos: number
+  posicao: number
+}
+
+export async function getRankingMensal(limite = 10): Promise<{ data: RankingEntry[] | null; error: unknown }> {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7) // ex: "2026-04"
+    const inicioMes = `${mesAtual}-01`
+    const fimMes = new Date(new Date(inicioMes).getFullYear(), new Date(inicioMes).getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0]
+
+    // Busca logs do mês atual
+    const { data: logs, error: logsError } = await supabase
+      .from('treino_logs')
+      .select('user_id, data')
+      .gte('data', inicioMes)
+      .lte('data', fimMes)
+
+    if (logsError || !logs) return { data: null, error: logsError }
+
+    // Agrupa por user_id no cliente
+    const contagem: Record<string, number> = {}
+    logs.forEach(l => {
+      contagem[l.user_id] = (contagem[l.user_id] || 0) + 1
+    })
+
+    // Ordena e pega top N
+    const topUsers = Object.entries(contagem)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limite)
+
+    if (!topUsers.length) return { data: [], error: null }
+
+    // Busca perfis dos top users
+    const userIds = topUsers.map(([id]) => id)
+    const { data: profiles, error: profError } = await supabase
+      .from('profiles')
+      .select('user_id, nome')
+      .in('user_id', userIds)
+
+    if (profError) return { data: null, error: profError }
+
+    const profileMap: Record<string, string> = {}
+    profiles?.forEach(p => { profileMap[p.user_id] = p.nome || 'Aluna' })
+
+    const ranking: RankingEntry[] = topUsers.map(([user_id, treinos], idx) => {
+      const nome = profileMap[user_id] || 'Aluna'
+      const primeiroNome = nome.split(' ')[0]
+      return { user_id, nome, primeiroNome, treinos, posicao: idx + 1 }
+    })
+
+    return { data: ranking, error: null }
+  } catch (err) {
+    return { data: null, error: err }
+  }
+}

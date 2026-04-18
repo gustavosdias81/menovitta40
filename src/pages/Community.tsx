@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { getCommunityPosts, createCommunityPost, getArtigos, moderarPost, deleteCommunityPost } from '../lib/supabase'
+import { getCommunityPosts, createCommunityPost, getArtigos, moderarPost, deleteCommunityPost, getRankingMensal } from '../lib/supabase'
+import type { RankingEntry } from '../lib/supabase'
 import type { CommunityPost, Artigo } from '../types'
 import {
   Heart, MessageCircle, Send, Loader2,
   User, Utensils, Dumbbell, TrendingUp, Lightbulb,
   Plus, X, Image, Newspaper, BookOpen,
-  FlaskConical, Users, Pin, EyeOff, Trash2, Shield, ChevronRight
+  FlaskConical, Users, Pin, EyeOff, Trash2, Shield, ChevronRight, Trophy
 } from 'lucide-react'
 
 // ── TIPOS DE POST ─────────────────────────────────────────────────────────────
@@ -197,11 +198,13 @@ export default function Community() {
   const { user, profile } = useAuth()
   const isAdmin = profile?.is_admin === true
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'news'>('news')
+  const [activeTab, setActiveTab] = useState<'feed' | 'news' | 'ranking'>('news')
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [artigos, setArtigos] = useState<Artigo[]>(ARTIGOS_INICIAIS as unknown as Artigo[])
   const [loading, setLoading] = useState(false)
   const [loadingArtigos, setLoadingArtigos] = useState(false)
+  const [ranking, setRanking] = useState<RankingEntry[]>([])
+  const [loadingRanking, setLoadingRanking] = useState(false)
   const [showNewPost, setShowNewPost] = useState(false)
   const [newText, setNewText] = useState('')
   const [newTipo, setNewTipo] = useState('geral')
@@ -214,9 +217,19 @@ export default function Community() {
   useEffect(() => {
     if (activeTab === 'feed') loadPosts()
     if (activeTab === 'news') loadArtigos()
+    if (activeTab === 'ranking') loadRanking()
   }, [activeTab])
 
   useEffect(() => { loadArtigos() }, [])
+
+  const loadRanking = async () => {
+    setLoadingRanking(true)
+    try {
+      const { data } = await getRankingMensal(10)
+      if (data) setRanking(data)
+    } catch { /* silencia */ }
+    finally { setLoadingRanking(false) }
+  }
 
   const loadArtigos = async () => {
     setLoadingArtigos(true)
@@ -321,19 +334,27 @@ export default function Community() {
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-5">
         <button
           onClick={() => setActiveTab('news')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'news' ? 'bg-white text-rosa-500 shadow-sm' : 'text-gray-500'
           }`}
         >
-          <Newspaper size={15} /> Artigos
+          <Newspaper size={13} /> Artigos
         </button>
         <button
           onClick={() => setActiveTab('feed')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'feed' ? 'bg-white text-rosa-500 shadow-sm' : 'text-gray-500'
           }`}
         >
-          <Users size={15} /> Comunidade
+          <Users size={13} /> Social
+        </button>
+        <button
+          onClick={() => setActiveTab('ranking')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'ranking' ? 'bg-white text-rosa-500 shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          <Trophy size={13} /> Ranking
         </button>
       </div>
 
@@ -665,6 +686,140 @@ export default function Community() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          ABA RANKING
+      ══════════════════════════════════════════ */}
+      {activeTab === 'ranking' && (
+        <div>
+          {/* Banner */}
+          <div className="relative rounded-2xl overflow-hidden h-28 mb-4">
+            <img
+              src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80"
+              alt="Ranking"
+              className="w-full h-full object-cover object-top"
+            />
+            <div
+              className="absolute inset-0 flex flex-col justify-center px-5"
+              style={{ background: 'linear-gradient(90deg, rgba(183,110,121,0.92) 0%, rgba(183,110,121,0.5) 100%)' }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy size={14} className="text-white/80" />
+                <span className="text-white/80 text-xs font-medium uppercase tracking-wide">
+                  {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <p className="font-serif text-lg font-bold text-white">Ranking Mensal</p>
+              <p className="text-white/80 text-xs">Quem mais treinou esse mês?</p>
+            </div>
+          </div>
+
+          {loadingRanking ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-rosa-500 animate-spin" />
+            </div>
+          ) : ranking.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <Trophy size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-semibold">Nenhum treino este mês ainda</p>
+              <p className="text-sm mt-1">Seja a primeira a registrar! 💪</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Top 3 destaque */}
+              {ranking.length >= 3 && (
+                <div className="card mb-4">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 text-center">🏆 Top 3 do Mês</p>
+                  <div className="flex items-end justify-center gap-3">
+                    {/* 2º lugar */}
+                    {ranking[1] && (
+                      <div className="flex flex-col items-center gap-1 pb-0">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl font-bold text-gray-500 border-2 border-gray-300">
+                          {ranking[1].primeiroNome.charAt(0)}
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-600 text-center leading-tight max-w-[56px] truncate">{ranking[1].primeiroNome}</span>
+                        <span className="text-[10px] text-gray-400">{ranking[1].treinos} treinos</span>
+                        <div className="w-14 h-12 bg-gray-200 rounded-t-lg flex items-end justify-center pb-1">
+                          <span className="text-lg">🥈</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* 1º lugar */}
+                    {ranking[0] && (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-16 h-16 rounded-full bg-ouro-100 flex items-center justify-center text-3xl font-bold text-ouro-600 border-3 border-ouro-300">
+                          {ranking[0].primeiroNome.charAt(0)}
+                        </div>
+                        <span className="text-[11px] font-bold text-gray-700 text-center leading-tight max-w-[64px] truncate">{ranking[0].primeiroNome}</span>
+                        <span className="text-[10px] text-gray-500">{ranking[0].treinos} treinos</span>
+                        <div className="w-16 h-16 bg-ouro-200 rounded-t-lg flex items-end justify-center pb-1">
+                          <span className="text-xl">🥇</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* 3º lugar */}
+                    {ranking[2] && (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center text-xl font-bold text-amber-600 border-2 border-amber-200">
+                          {ranking[2].primeiroNome.charAt(0)}
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-600 text-center leading-tight max-w-[52px] truncate">{ranking[2].primeiroNome}</span>
+                        <span className="text-[10px] text-gray-400">{ranking[2].treinos} treinos</span>
+                        <div className="w-14 h-8 bg-amber-100 rounded-t-lg flex items-end justify-center pb-1">
+                          <span className="text-base">🥉</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Lista completa */}
+              <div className="card">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Classificação completa</p>
+                <div className="space-y-2">
+                  {ranking.map(entry => {
+                    const isMe = user?.id === entry.user_id
+                    const medalha = entry.posicao === 1 ? '🥇' : entry.posicao === 2 ? '🥈' : entry.posicao === 3 ? '🥉' : null
+                    return (
+                      <div
+                        key={entry.user_id}
+                        className={`flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all ${
+                          isMe ? 'bg-rosa-50 border border-rosa-200' : 'bg-gray-50'
+                        }`}
+                      >
+                        <div className={`w-7 text-center text-sm font-bold ${
+                          entry.posicao <= 3 ? 'text-ouro-500' : 'text-gray-400'
+                        }`}>
+                          {medalha || `#${entry.posicao}`}
+                        </div>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${
+                          isMe ? 'bg-rosa-200 text-rosa-700' : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          {entry.primeiroNome.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold truncate ${isMe ? 'text-rosa-700' : 'text-gray-700'}`}>
+                            {entry.primeiroNome} {isMe && <span className="text-xs font-normal">(você)</span>}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-bold ${isMe ? 'text-rosa-600' : 'text-gray-600'}`}>{entry.treinos}</p>
+                          <p className="text-[10px] text-gray-400">treinos</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-gray-400 text-center mt-2">
+                Atualizado em tempo real · Apenas treinos do mês atual
+              </p>
+            </div>
+          )}
         </div>
       )}
 
