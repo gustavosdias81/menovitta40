@@ -49,8 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id)
+    if (user) {
+      await fetchProfile(user.id)
+    }
   }
+
+  // Garante que a aba Perfil não trave: se há usuário mas profile é null,
+  // o token de sessão foi renovado — busca o perfil silenciosamente.
+  useEffect(() => {
+    if (user && !profile && !loading) {
+      fetchProfile(user.id)
+    }
+  }, [user, loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const marcarQuizCompleto = () => {
     if (user?.id) localStorage.setItem(`quiz_done_${user.id}`, '1')

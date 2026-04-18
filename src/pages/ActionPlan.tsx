@@ -1235,17 +1235,25 @@ export default function ActionPlan() {
   }
 
   useEffect(() => {
-    if (user) loadData()
-  }, [user])
+    let mounted = true
+    if (user) {
+      loadData(mounted)
+    } else {
+      // Sem usuário: não há o que carregar — libera o spinner imediatamente
+      setLoading(false)
+    }
+    return () => { mounted = false }
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadData = async () => {
-    if (!user) return
+  const loadData = async (mounted = true) => {
+    if (!user) { setLoading(false); return }
     setLoading(true)
     try {
       const [planoRes, logsRes] = await Promise.all([
         supabase.from('planos_acao').select('*').eq('user_id', user.id).maybeSingle(),
         getTreinoLogs(user.id, 60),
       ])
+      if (!mounted) return // componente desmontado durante o fetch — ignora
       if (planoRes.data) {
         setPlano(planoRes.data as PlanoAcao)
         if (planoRes.data.trilha_ativa) setTrilhaAtiva(planoRes.data.trilha_ativa as TrilhaAtiva)
@@ -1254,7 +1262,7 @@ export default function ActionPlan() {
     } catch (e) {
       console.error('ActionPlan loadData error:', e)
     } finally {
-      setLoading(false)
+      if (mounted) setLoading(false)
     }
   }
 

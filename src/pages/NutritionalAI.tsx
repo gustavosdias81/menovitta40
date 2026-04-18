@@ -219,14 +219,29 @@ export default function NutritionalAI() {
   // Tabs
   const [tab, setTab] = useState<'scanner' | 'sugestoes'>('scanner')
 
-  useEffect(() => { if (user) loadTodayData() }, [user])
+  useEffect(() => {
+    let mounted = true
+    if (user) {
+      loadTodayData(mounted)
+    }
+    return () => { mounted = false }
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadTodayData = async () => {
+  const loadTodayData = async (mounted = true) => {
     if (!user) return
-    const today = new Date().toISOString().split('T')[0]
-    const [logsRes, planoRes] = await Promise.all([getFoodLogs(user.id, today), getPlanoAcao(user.id)])
-    if (logsRes.data)  setTodayLogs(logsRes.data as FoodLog[])
-    if (planoRes.data) setPlano(planoRes.data as PlanoAcao)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const [logsRes, planoRes] = await Promise.all([
+        getFoodLogs(user.id, today),
+        getPlanoAcao(user.id),
+      ])
+      if (!mounted) return
+      if (logsRes.data)  setTodayLogs(logsRes.data as FoodLog[])
+      if (planoRes.data) setPlano(planoRes.data as PlanoAcao)
+    } catch (err) {
+      console.error('NutritionalAI loadTodayData error:', err)
+      // silencia — página renderiza com estado padrão (metas default)
+    }
   }
 
   // ── Metas e consumo ──────────────────────────────────────────────────────────

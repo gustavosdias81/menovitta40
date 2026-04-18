@@ -31,32 +31,35 @@ const faseBadge = (f: FaseMenopausa) => {
 }
 
 export default function Profile() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile, loading: authLoading, refreshProfile } = useAuth()
   const navigate = useNavigate()
 
+  // Ao montar: se auth já terminou e profile ainda é null, busca uma vez.
+  // Depende de authLoading para não conflitar com o fetch inicial do AuthContext.
   useEffect(() => {
-    // Tenta carregar automaticamente até 3 vezes com delay
-    let tentativas = 0
-    const tentar = async () => {
-      if (tentativas >= 3) return
-      tentativas++
-      await refreshProfile()
+    if (!authLoading && !profile) {
+      refreshProfile()
     }
-    if (!profile) {
-      tentar()
-      const t1 = setTimeout(tentar, 2000)
-      const t2 = setTimeout(tentar, 4500)
-      return () => { clearTimeout(t1); clearTimeout(t2) }
-    }
-  }, [])
+  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auth ainda inicializando → spinner simples (sem retry, App.tsx já cobre isso)
+  if (authLoading) return (
+    <div className="page-container flex items-center justify-center min-h-[60vh]">
+      <div className="w-10 h-10 border-3 border-rosa-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  // Auth pronto mas profile indisponível → botão de retry explícito
   if (!profile) return (
     <div className="page-container flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className="w-10 h-10 border-3 border-rosa-400 border-t-transparent rounded-full animate-spin" />
-      <p className="text-gray-400 text-sm text-center">Carregando seu perfil...</p>
+      <div className="w-12 h-12 rounded-full bg-rosa-50 flex items-center justify-center">
+        <User size={24} className="text-rosa-400" />
+      </div>
+      <p className="text-gray-500 text-sm text-center font-medium">Não foi possível carregar seu perfil</p>
+      <p className="text-gray-400 text-xs text-center">Verifique sua conexão e tente novamente</p>
       <button
         onClick={refreshProfile}
-        className="flex items-center gap-2 text-rosa-500 text-sm font-medium"
+        className="flex items-center gap-2 text-rosa-500 text-sm font-semibold bg-rosa-50 px-4 py-2 rounded-xl"
       >
         <RefreshCw size={16} /> Tentar novamente
       </button>
