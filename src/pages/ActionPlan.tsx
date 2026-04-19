@@ -1206,6 +1206,9 @@ export default function ActionPlan() {
   const [treinoLogs, setTreinoLogs] = useState<TreinoLog[]>([])
   const [marcando, setMarcando] = useState(false)
 
+  // Checkboxes de exercícios: chave = `${diaIndex}-${local}-${exercicioIndex}`
+  const [exerciciosMarcados, setExerciciosMarcados] = useState<Record<string, boolean>>({})
+
   // Modal de vídeo embutido
   const [videoModal, setVideoModal] = useState<{ nome: string; videoId: string | null; erro: boolean } | null>(null)
 
@@ -1515,24 +1518,16 @@ export default function ActionPlan() {
                   </>
                 )}
               </div>
-              {/* Botão marcar concluído */}
+              {/* Status */}
               {treinoHojeConcluido ? (
                 <div className="flex items-center gap-1.5 bg-green-400/90 rounded-xl px-3 py-1.5">
                   <CheckCircle2 size={15} className="text-white" />
                   <span className="text-xs font-bold text-white">Concluído!</span>
                 </div>
               ) : (
-                <button
-                  onClick={() => marcarTreinoConcluido(treinoHoje.foco, treinoHoje.duracao)}
-                  disabled={marcando}
-                  className="flex items-center gap-1.5 bg-white/90 hover:bg-white rounded-xl px-3 py-1.5 transition-all"
-                >
-                  {marcando
-                    ? <Loader2 size={14} className="animate-spin text-rosa-500" />
-                    : <CheckCircle2 size={15} className="text-rosa-500" />
-                  }
-                  <span className="text-xs font-bold text-rosa-600">Marcar feito</span>
-                </button>
+                <div className="flex items-center gap-1.5 bg-white/20 rounded-xl px-3 py-1.5">
+                  <span className="text-xs font-bold text-white/80">Abra ↓ e marque</span>
+                </div>
               )}
             </div>
           </div>
@@ -1667,42 +1662,112 @@ export default function ActionPlan() {
                             </div>
 
                             {/* Exercícios */}
-                            <div className="space-y-3">
-                              {exercicios.map((ex, j) => {
-                                const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
-                                return (
-                                  <div key={j} className="bg-gray-50 rounded-xl px-3 pt-2.5 pb-3">
-                                    {/* Nome + séries */}
-                                    <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm font-semibold text-gray-800 flex-1">{ex.nome}</p>
-                                      <span className="text-sm font-bold text-rosa-500 ml-2 shrink-0 bg-rosa-50 px-2 py-0.5 rounded-lg">{ex.series}</span>
-                                    </div>
-                                    {/* Como fazer — descrição detalhada */}
-                                    {ex.obs && !isDescanso && (
-                                      <div className="mb-2.5 p-2.5 bg-blue-50 border border-blue-100 rounded-xl">
-                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                          <span>📋</span> Como fazer
-                                        </p>
-                                        <p className="text-xs text-gray-700 leading-relaxed">{ex.obs}</p>
+                            {(() => {
+                              const todosFeitos = exercicios
+                                .filter(ex => !ex.nome.startsWith('🛌'))
+                                .every((_, j) => exerciciosMarcados[`${i}-${local}-${j}`])
+                              const algumExercicio = exercicios.some(ex => !ex.nome.startsWith('🛌'))
+                              const ehHojeExpanded = d.dia === diaHoje
+                              const jaConcluido = ehHojeExpanded && treinoHojeConcluido
+                              return (
+                                <div className="space-y-3">
+                                  {exercicios.map((ex, j) => {
+                                    const isDescanso = ex.nome.startsWith('🛌') || ex.nome.startsWith('🏆') || ex.nome.startsWith('💪')
+                                    const chave = `${i}-${local}-${j}`
+                                    const marcado = !!exerciciosMarcados[chave]
+                                    return (
+                                      <div key={j} className={`rounded-xl px-3 pt-2.5 pb-3 transition-all ${marcado && !isDescanso ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                                        {/* Nome + séries + checkbox */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                          {!isDescanso && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setExerciciosMarcados(prev => ({ ...prev, [chave]: !prev[chave] }))
+                                              }}
+                                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                                marcado
+                                                  ? 'bg-green-500 border-green-500'
+                                                  : 'border-gray-300 bg-white'
+                                              }`}
+                                            >
+                                              {marcado && <Check size={13} className="text-white" />}
+                                            </button>
+                                          )}
+                                          <p className={`text-sm font-semibold flex-1 ${marcado && !isDescanso ? 'text-green-700 line-through opacity-70' : 'text-gray-800'}`}>{ex.nome}</p>
+                                          <span className="text-sm font-bold text-rosa-500 ml-1 shrink-0 bg-rosa-50 px-2 py-0.5 rounded-lg">{ex.series}</span>
+                                        </div>
+                                        {/* Como fazer */}
+                                        {ex.obs && !isDescanso && !marcado && (
+                                          <div className="mb-2.5 p-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                              <span>📋</span> Como fazer
+                                            </p>
+                                            <p className="text-xs text-gray-700 leading-relaxed">{ex.obs}</p>
+                                          </div>
+                                        )}
+                                        {/* Botão YouTube */}
+                                        {!isDescanso && !marcado && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              abrirVideo(ex.nome, local)
+                                            }}
+                                            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
+                                          >
+                                            <PlayCircle size={17} />
+                                            ▶ Ver vídeo demonstrativo
+                                          </button>
+                                        )}
                                       </div>
-                                    )}
-                                    {/* Botão YouTube */}
-                                    {!isDescanso && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          abrirVideo(ex.nome, local)
-                                        }}
-                                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white text-sm font-bold shadow-sm"
-                                      >
-                                        <PlayCircle size={17} />
-                                        ▶ Ver vídeo demonstrativo
-                                      </button>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
+                                    )
+                                  })}
+
+                                  {/* Botão de conclusão do treino */}
+                                  {algumExercicio && (
+                                    <div className="mt-2 pt-2 border-t border-dashed border-gray-200">
+                                      {jaConcluido ? (
+                                        <div className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-xl">
+                                          <CheckCircle2 size={18} className="text-green-500" />
+                                          <span className="text-sm font-bold text-green-600">Treino registrado no calendário! ✓</span>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            marcarTreinoConcluido(d.foco, d.duracao)
+                                          }}
+                                          disabled={!todosFeitos || marcando}
+                                          className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                                            todosFeitos
+                                              ? 'bg-green-500 text-white shadow-md hover:bg-green-600 active:scale-95'
+                                              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                          }`}
+                                        >
+                                          {marcando
+                                            ? <Loader2 size={16} className="animate-spin" />
+                                            : <CheckCircle2 size={16} />
+                                          }
+                                          {todosFeitos
+                                            ? '🏆 Registrar Treino no Calendário'
+                                            : (() => {
+                                                const total = exercicios.filter(ex => !ex.nome.startsWith('🛌')).length
+                                                const feitos = Object.keys(exerciciosMarcados).filter(k => k.startsWith(`${i}-${local}-`) && exerciciosMarcados[k]).length
+                                                return `Marque todos os exercícios (${feitos}/${total} feitos)`
+                                              })()
+                                          }
+                                        </button>
+                                      )}
+                                      {!todosFeitos && !jaConcluido && (
+                                        <p className="text-[10px] text-gray-400 text-center mt-1.5">
+                                          ✓ Marque cada exercício acima ao concluí-lo
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })()}
 
                             {/* Cardio */}
                             {d.cardio && (

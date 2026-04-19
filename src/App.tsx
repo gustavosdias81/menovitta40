@@ -62,10 +62,10 @@ function AppRoutes() {
       } />
 
       {/* Quiz (sem layout — tela cheia) */}
-      {/* Se quiz já foi feito, redireciona direto para o plano */}
+      {/* Se quiz já foi feito, vai para saude-info (não /plano — evita o bug de bounce) */}
       <Route path="/quiz" element={
         <ProtectedRoute>
-          {quizCompleto ? <Navigate to="/plano" replace /> : <Quiz />}
+          {quizCompleto ? <Navigate to="/saude-info" replace /> : <Quiz />}
         </ProtectedRoute>
       } />
 

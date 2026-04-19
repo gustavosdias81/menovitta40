@@ -66,15 +66,16 @@ const OBJETIVOS: { value: Objetivo; label: string; desc: string; icon: React.Rea
 ]
 
 const STEPS = [
-  { id: 'boas_vindas', title: 'Seja Bem-Vinda!', subtitle: 'Vamos criar seu plano personalizado' },
-  { id: 'dados_basicos', title: 'Dados Básicos', subtitle: 'Informações corporais essenciais' },
-  { id: 'ciclo', title: 'Ciclo Menstrual', subtitle: 'Sobre sua menstruação atual' },
-  { id: 'sintomas', title: 'Seus Sintomas', subtitle: 'O que você está sentindo?' },
-  { id: 'saude', title: 'Histórico de Saúde', subtitle: 'Condições e medicamentos' },
-  { id: 'estilo_vida', title: 'Estilo de Vida', subtitle: 'Sono, estresse e atividade física' },
-  { id: 'alimentacao', title: 'Alimentação', subtitle: 'Restrições e preferências' },
-  { id: 'objetivo', title: 'Seu Objetivo', subtitle: 'O que você quer alcançar?' },
-  { id: 'resultado', title: 'Pronto!', subtitle: 'Seu perfil foi criado' },
+  { id: 'boas_vindas',  title: 'Seja Bem-Vinda!',    subtitle: 'Vamos criar seu plano personalizado' },
+  { id: 'nickname',     title: 'Sua Identidade',      subtitle: 'Como você aparece na comunidade' },
+  { id: 'dados_basicos',title: 'Dados Básicos',       subtitle: 'Informações corporais essenciais' },
+  { id: 'ciclo',        title: 'Ciclo Menstrual',     subtitle: 'Sobre sua menstruação atual' },
+  { id: 'sintomas',     title: 'Seus Sintomas',       subtitle: 'O que você está sentindo?' },
+  { id: 'saude',        title: 'Histórico de Saúde',  subtitle: 'Condições e medicamentos' },
+  { id: 'estilo_vida',  title: 'Estilo de Vida',      subtitle: 'Sono, estresse e atividade física' },
+  { id: 'alimentacao',  title: 'Alimentação',          subtitle: 'Restrições e preferências' },
+  { id: 'objetivo',     title: 'Seu Objetivo',         subtitle: 'O que você quer alcançar?' },
+  { id: 'resultado',    title: 'Pronto!',              subtitle: 'Seu perfil foi criado' },
 ]
 
 export default function Quiz() {
@@ -109,6 +110,7 @@ export default function Quiz() {
   const [restricoes, setRestricoes] = useState<string[]>([])
   const [objetivo, setObjetivo] = useState<Objetivo>('emagrecer')
   const [faseClassificada, setFaseClassificada] = useState<FaseMenopausa>('menopausa')
+  const [nickname, setNickname] = useState('')
 
   const classificarFase = (): FaseMenopausa => {
     if (ultimaMenstruacao === 'regular') {
@@ -183,6 +185,7 @@ export default function Quiz() {
             user_id: user.id,
             email: user.email ?? '',
             nome: user.user_metadata?.nome ?? '',
+            nickname: nickname.startsWith('@') ? nickname : (nickname ? `@${nickname}` : ''),
             idade, peso, altura, fase_menopausa: fase, objetivo,
             quiz_completo: true, updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' })
@@ -199,15 +202,18 @@ export default function Quiz() {
       console.error('Erro inesperado:', err)
     }
 
-    // Marca quiz como concluído no estado React + localStorage (não depende do Supabase)
-    marcarQuizCompleto()
-
     setLoading(false)
-    setStep(STEPS.length - 1)
+    setStep(STEPS.length - 1) // mostra tela "Pronto!" por 3 segundos
 
-    // Atualiza perfil no contexto e navega automaticamente após 3s
+    // Atualiza perfil e depois marca quiz como completo + navega
+    // IMPORTANTE: marcarQuizCompleto() DENTRO do timeout — se fosse antes,
+    // a rota /quiz detectaria quizCompleto=true e redirecionaria para /saude-info
+    // imediatamente, pulando a tela "Pronto!" e criando o bounce bug.
     refreshProfile()
-    setTimeout(() => navigate('/saude-info'), 3000)
+    setTimeout(() => {
+      marcarQuizCompleto()           // agora o QuizGuard pode liberar o layout
+      navigate('/saude-info', { replace: true })
+    }, 3000)
   }
 
   const nextStep = () => {
@@ -295,6 +301,67 @@ export default function Quiz() {
                 </div>
               ))}
             </div>
+          </div>
+        )
+
+      case 'nickname':
+        return (
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-rosa-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">@</span>
+              </div>
+              <h3 className="font-serif text-xl font-bold text-gray-800 mb-2">Crie seu @nickname</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Seu identificador único na Comunidade, no Ranking e nas publicações.
+                Pode usar só letras, números e underscore.
+              </p>
+            </div>
+
+            <div>
+              <label className="label-field">Seu @nickname</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-rosa-400 font-bold text-lg">@</span>
+                <input
+                  type="text"
+                  value={nickname.replace(/^@/, '')}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()
+                    setNickname(val)
+                  }}
+                  placeholder="seu_nome_aqui"
+                  maxLength={20}
+                  className="input-field pl-9"
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                {nickname.length}/20 caracteres · só letras, números e _ (sem espaços)
+              </p>
+            </div>
+
+            {nickname.length >= 3 && (
+              <div className="bg-rosa-50 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-rosa-200 flex items-center justify-center font-bold text-rosa-700 text-sm">
+                  {(primeiroNome || 'A').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">{primeiroNome || 'Aluna'}</p>
+                  <p className="text-xs text-rosa-500 font-medium">@{nickname}</p>
+                </div>
+                <span className="ml-auto text-xs bg-white text-gray-500 px-2 py-1 rounded-lg shadow-sm">Pré-visualização</span>
+              </div>
+            )}
+
+            {nickname.length < 3 && nickname.length > 0 && (
+              <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">
+                ⚠️ Mínimo 3 caracteres
+              </p>
+            )}
+
+            <p className="text-xs text-center text-gray-400">
+              Pode pular — você pode definir depois nas configurações
+            </p>
           </div>
         )
 

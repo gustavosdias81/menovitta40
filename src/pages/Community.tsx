@@ -265,6 +265,7 @@ export default function Community() {
       user_id: user.id,
       autor_nome: profile.nome || 'Aluna',
       autor_foto: profile.foto_url,
+      autor_nickname: profile.nickname || undefined,
       tipo: newTipo,
       texto: newText.trim(),
       foto_url: postFotoUrl || undefined,
@@ -561,7 +562,14 @@ export default function Community() {
                         : <User size={18} />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800 text-sm">{post.autor_nome}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-semibold text-gray-800 text-sm">{post.autor_nome}</p>
+                        {(post.autor_nickname || (post.user_id === user?.id && profile?.nickname)) && (
+                          <span className="text-[10px] text-rosa-400 font-semibold">
+                            {post.autor_nickname || profile?.nickname}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-gray-400">{timeAgo(post.created_at)}</span>
                         <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TIPO_COLORS[post.tipo]}`}>
@@ -740,6 +748,7 @@ export default function Community() {
                           {ranking[1].primeiroNome.charAt(0)}
                         </div>
                         <span className="text-[10px] font-bold text-gray-600 text-center leading-tight max-w-[56px] truncate">{ranking[1].primeiroNome}</span>
+                        {ranking[1].nickname && <span className="text-[9px] text-gray-400 truncate max-w-[56px]">{ranking[1].nickname}</span>}
                         <span className="text-[10px] text-gray-400">{ranking[1].treinos} treinos</span>
                         <div className="w-14 h-12 bg-gray-200 rounded-t-lg flex items-end justify-center pb-1">
                           <span className="text-lg">🥈</span>
@@ -753,6 +762,7 @@ export default function Community() {
                           {ranking[0].primeiroNome.charAt(0)}
                         </div>
                         <span className="text-[11px] font-bold text-gray-700 text-center leading-tight max-w-[64px] truncate">{ranking[0].primeiroNome}</span>
+                        {ranking[0].nickname && <span className="text-[9px] text-ouro-500 truncate max-w-[64px]">{ranking[0].nickname}</span>}
                         <span className="text-[10px] text-gray-500">{ranking[0].treinos} treinos</span>
                         <div className="w-16 h-16 bg-ouro-200 rounded-t-lg flex items-end justify-center pb-1">
                           <span className="text-xl">🥇</span>
@@ -766,6 +776,7 @@ export default function Community() {
                           {ranking[2].primeiroNome.charAt(0)}
                         </div>
                         <span className="text-[10px] font-bold text-gray-600 text-center leading-tight max-w-[52px] truncate">{ranking[2].primeiroNome}</span>
+                        {ranking[2].nickname && <span className="text-[9px] text-gray-400 truncate max-w-[52px]">{ranking[2].nickname}</span>}
                         <span className="text-[10px] text-gray-400">{ranking[2].treinos} treinos</span>
                         <div className="w-14 h-8 bg-amber-100 rounded-t-lg flex items-end justify-center pb-1">
                           <span className="text-base">🥉</span>
@@ -804,6 +815,9 @@ export default function Community() {
                           <p className={`text-sm font-semibold truncate ${isMe ? 'text-rosa-700' : 'text-gray-700'}`}>
                             {entry.primeiroNome} {isMe && <span className="text-xs font-normal">(você)</span>}
                           </p>
+                          {entry.nickname && (
+                            <p className={`text-[10px] truncate ${isMe ? 'text-rosa-400' : 'text-gray-400'}`}>{entry.nickname}</p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className={`text-sm font-bold ${isMe ? 'text-rosa-600' : 'text-gray-600'}`}>{entry.treinos}</p>

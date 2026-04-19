@@ -6,6 +6,7 @@ export interface Profile {
   id: string
   user_id: string
   nome: string
+  nickname?: string
   email: string
   telefone: string
   data_nascimento: string
@@ -105,6 +106,7 @@ export interface CommunityPost {
   user_id: string
   autor_nome: string
   autor_foto?: string
+  autor_nickname?: string
   tipo: 'refeicao' | 'treino' | 'evolucao' | 'dica' | 'geral'
   texto: string
   foto_url?: string

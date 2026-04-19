@@ -322,6 +322,7 @@ export interface RankingEntry {
   user_id: string
   nome: string
   primeiroNome: string
+  nickname?: string
   treinos: number
   posicao: number
 }
@@ -360,18 +361,18 @@ export async function getRankingMensal(limite = 10): Promise<{ data: RankingEntr
     const userIds = topUsers.map(([id]) => id)
     const { data: profiles, error: profError } = await supabase
       .from('profiles')
-      .select('user_id, nome')
+      .select('user_id, nome, nickname')
       .in('user_id', userIds)
 
     if (profError) return { data: null, error: profError }
 
-    const profileMap: Record<string, string> = {}
-    profiles?.forEach(p => { profileMap[p.user_id] = p.nome || 'Aluna' })
+    const profileMap: Record<string, { nome: string; nickname?: string }> = {}
+    profiles?.forEach(p => { profileMap[p.user_id] = { nome: p.nome || 'Aluna', nickname: p.nickname } })
 
     const ranking: RankingEntry[] = topUsers.map(([user_id, treinos], idx) => {
-      const nome = profileMap[user_id] || 'Aluna'
-      const primeiroNome = nome.split(' ')[0]
-      return { user_id, nome, primeiroNome, treinos, posicao: idx + 1 }
+      const p = profileMap[user_id] || { nome: 'Aluna' }
+      const primeiroNome = p.nome.split(' ')[0]
+      return { user_id, nome: p.nome, primeiroNome, nickname: p.nickname, treinos, posicao: idx + 1 }
     })
 
     return { data: ranking, error: null }

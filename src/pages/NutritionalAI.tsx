@@ -44,6 +44,22 @@ interface Sugestao {
   imagem_termo: string
 }
 
+type HorarioRefeicao = 'cafe_manha' | 'almoco' | 'cafe_tarde' | 'jantar'
+
+const HORARIO_LABELS: Record<HorarioRefeicao, string> = {
+  cafe_manha: '☀️ Café da Manhã',
+  almoco:     '🌤 Almoço',
+  cafe_tarde: '🌥 Café da Tarde',
+  jantar:     '🌙 Jantar',
+}
+
+const HORARIO_CONTEXTO: Record<HorarioRefeicao, string> = {
+  cafe_manha: 'café da manhã (6h–9h): refeição energizante, proteica, com carboidratos complexos para dar energia e começar o metabolismo',
+  almoco:     'almoço (12h–14h): refeição principal do dia, equilibrada em proteínas, carboidratos, vegetais e gorduras boas',
+  cafe_tarde: 'café da tarde / lanche (15h–17h): refeição leve mas nutritiva, ideal também para pré-treino',
+  jantar:     'jantar (19h–21h): refeição mais leve, rica em proteínas e vegetais, com poucos carboidratos para não prejudicar o sono',
+}
+
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
   const openai = getOpenAI()
@@ -106,52 +122,54 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   throw new Error('Falha após 3 tentativas')
 }
 
-// ── Sugestão de refeição (1 receita) ─────────────────────────────────────────
-async function gerarReceitaIA(
-  faltamCal: number, faltamProt: number, faseMenopausa: string
-): Promise<Sugestao> {
+// ── Sugestão de refeição (3 receitas por horário) ────────────────────────────
+async function gerarReceitasIA(
+  horario: HorarioRefeicao, faseMenopausa: string
+): Promise<Sugestao[]> {
   const openai = getOpenAI()
 
-  const contexto = faltamCal > 100
-    ? `A aluna ainda precisa de ${Math.round(faltamCal)} kcal e ${Math.round(faltamProt)}g de proteína hoje.`
-    : `A aluna já atingiu as metas do dia. Sugira um lanche leve e saudável.`
-
   const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
-${contexto}
+Gere EXATAMENTE 3 opções diferentes de receitas saudáveis para o ${HORARIO_CONTEXTO[horario]}.
 
-Sugira UMA receita rápida, saborosa e saudável, priorize proteínas e anti-inflamatórios.
-Ingredientes acessíveis no Brasil, máx 15 min de preparo.
+Regras:
+- Cada receita deve ser diferente das outras (variar proteína, textura, sabor)
+- Ingredientes acessíveis no Brasil
+- Máximo 20 minutos de preparo
+- Priorize proteínas e alimentos anti-inflamatórios
 
-Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json):
-{
-  "nome": "Nome apetitoso",
-  "descricao": "Descrição curta em 1 frase",
-  "calorias": <número inteiro>,
-  "proteinas": <número com 1 decimal>,
-  "gorduras": <número com 1 decimal>,
-  "carboidratos": <número com 1 decimal>,
-  "tempo_preparo": "X min",
-  "ingredientes": ["quantidade + ingrediente", ...],
-  "modo_preparo": ["Passo 1", "Passo 2", "Passo 3"],
-  "imagem_termo": "food search term in English"
-}`
+Retorne APENAS um array JSON válido com 3 objetos (sem markdown, sem \`\`\`json):
+[
+  {
+    "nome": "Nome apetitoso",
+    "descricao": "Descrição curta em 1 frase saborosa",
+    "calorias": <inteiro>,
+    "proteinas": <decimal 1 casa>,
+    "gorduras": <decimal 1 casa>,
+    "carboidratos": <decimal 1 casa>,
+    "tempo_preparo": "X min",
+    "ingredientes": ["qtd + ingrediente", "..."],
+    "modo_preparo": ["Passo 1.", "Passo 2.", "Passo 3."],
+    "imagem_termo": "food search term in English for Unsplash"
+  },
+  { ... },
+  { ... }
+]`
 
-  // 3 tentativas com backoff exponencial
   const delays = [0, 5000, 15000]
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        max_tokens: 700,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       })
       const text = response.choices[0]?.message?.content?.trim() || ''
       const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-      return JSON.parse(clean) as Sugestao
+      const arr = JSON.parse(clean)
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error('Expected array')
+      return arr as Sugestao[]
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (!msg.includes('429') && !msg.includes('quota') && attempt < 2) throw err
       if (attempt === 2) throw err
     }
   }
@@ -212,9 +230,11 @@ export default function NutritionalAI() {
   const [showHistory, setShowHistory] = useState(false)
 
   // Sugestão IA
-  const [sugestao,         setSugestao]         = useState<Sugestao | null>(null)
+  const [sugestoes,        setSugestoes]        = useState<Sugestao[]>([])
   const [loadingSugestao,  setLoadingSugestao]  = useState(false)
   const [sugestaoError,    setSugestaoError]    = useState<string | null>(null)
+  const [horarioRefeicao,  setHorarioRefeicao]  = useState<HorarioRefeicao>('almoco')
+  const [receitaAberta,    setReceitaAberta]    = useState<number | null>(null)
 
   // Tabs
   const [tab, setTab] = useState<'scanner' | 'sugestoes'>('scanner')
@@ -333,11 +353,13 @@ export default function NutritionalAI() {
     }
     setLoadingSugestao(true)
     setSugestaoError(null)
-    setSugestao(null)
+    setSugestoes([])
+    setReceitaAberta(null)
     try {
       const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
-      const s = await gerarReceitaIA(faltam.calorias, faltam.proteinas, fase)
-      setSugestao(s)
+      const arr = await gerarReceitasIA(horarioRefeicao, fase)
+      setSugestoes(arr)
+      setReceitaAberta(0) // Abre a primeira receita automaticamente
     } catch (err: unknown) {
       console.error('IA Nutricional error:', err)
       const msg = err instanceof Error ? err.message : String(err)
@@ -598,134 +620,172 @@ export default function NutritionalAI() {
       {tab === 'sugestoes' && (
         <div className="space-y-4">
 
-          {/* Card: o que falta */}
+          {/* Card: gerar receitas */}
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
-              <Target size={16} className="text-rosa-500" />
-              <h3 className="font-semibold text-gray-800 text-sm">O que ainda precisa consumir hoje</h3>
+              <ChefHat size={16} className="text-rosa-500" />
+              <h3 className="font-semibold text-gray-800 text-sm">Receitas por Horário</h3>
+              <span className="ml-auto text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">IA Menovitta</span>
             </div>
 
-            {faltam.calorias === 0 && faltam.proteinas === 0 ? (
-              <div className="text-center py-4">
-                <CheckCircle2 size={32} className="mx-auto text-green-500 mb-2" />
-                <p className="font-semibold text-green-700 text-sm">Metas atingidas!</p>
-                <p className="text-xs text-gray-400 mt-1">Você completou suas metas nutricionais de hoje.</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {[
-                    { icon: <Flame size={14} />, label: 'Calorias',     val: faltam.calorias,     unit: 'kcal', cor: 'text-orange-500 bg-orange-50' },
-                    { icon: <Zap size={14} />,   label: 'Proteína',     val: faltam.proteinas,    unit: 'g',    cor: 'text-red-500 bg-red-50' },
-                    { icon: <Apple size={14} />, label: 'Carboidratos', val: faltam.carboidratos, unit: 'g',    cor: 'text-blue-500 bg-blue-50' },
-                    { icon: <Leaf size={14} />,  label: 'Gorduras',     val: faltam.gorduras,     unit: 'g',    cor: 'text-yellow-600 bg-yellow-50' },
-                  ].map((m, i) => (
-                    <div key={i} className={`rounded-xl p-3 flex items-center gap-2 ${m.cor.split(' ')[1]}`}>
-                      <span className={m.cor.split(' ')[0]}>{m.icon}</span>
-                      <div>
-                        <p className={`text-base font-bold ${m.cor.split(' ')[0]}`}>{Math.round(m.val)}{m.unit}</p>
-                        <p className="text-[10px] text-gray-500">{m.label}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
+            {/* Seletor de horário */}
+            <p className="text-xs text-gray-500 mb-2">Qual é a próxima refeição?</p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {(Object.keys(HORARIO_LABELS) as HorarioRefeicao[]).map(h => (
                 <button
-                  onClick={handleGerarSugestao}
-                  disabled={loadingSugestao}
-                  className="btn-gold w-full flex items-center justify-center gap-2"
+                  key={h}
+                  onClick={() => { setHorarioRefeicao(h); setSugestoes([]); setReceitaAberta(null) }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-left ${
+                    horarioRefeicao === h
+                      ? 'bg-rosa-500 text-white shadow-sm'
+                      : 'bg-gray-50 text-gray-600 border border-gray-100'
+                  }`}
                 >
-                  {loadingSugestao
-                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando sugestão com IA...</>
-                    : <><ChefHat size={18} /> {sugestao ? 'Gerar nova sugestão' : 'Sugerir o que comer agora'}</>
-                  }
+                  {HORARIO_LABELS[h]}
                 </button>
+              ))}
+            </div>
 
-                {sugestaoError && (
-                  <div className="flex items-start gap-2 bg-red-50 text-red-600 text-xs px-3 py-2.5 rounded-xl mt-3">
-                    <AlertCircle size={14} className="mt-0.5 shrink-0" /> {sugestaoError}
-                  </div>
-                )}
-              </>
+            <button
+              onClick={handleGerarSugestao}
+              disabled={loadingSugestao}
+              className="btn-gold w-full flex items-center justify-center gap-2"
+            >
+              {loadingSugestao
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando 3 receitas com IA...</>
+                : <><Sparkles size={18} /> {sugestoes.length > 0 ? 'Gerar novas receitas' : `Gerar 3 receitas — ${HORARIO_LABELS[horarioRefeicao]}`}</>
+              }
+            </button>
+
+            {sugestaoError && (
+              <div className="flex items-start gap-2 bg-red-50 text-red-600 text-xs px-3 py-2.5 rounded-xl mt-3">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" /> {sugestaoError}
+              </div>
             )}
           </div>
 
-          {/* Card de sugestão */}
-          {sugestao && (() => { const s = sugestao; return (
-            <div className="card overflow-hidden p-0">
-              {/* Imagem */}
-              <div className="relative h-44 overflow-hidden">
-                <img
-                  src={foodImageUrl(s.imagem_termo)}
-                  alt={s.nome}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80`
-                  }}
-                />
-                <div className="absolute inset-0 flex flex-col justify-end p-4"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-ouro-400 text-white px-2 py-0.5 rounded-full font-semibold">Sugestão IA</span>
-                    <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Clock size={10} /> {s.tempo_preparo}
-                    </span>
+          {/* Metas do dia (compacto) */}
+          {faltam.calorias > 0 && (
+            <div className="card py-3">
+              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
+                <Target size={12} className="text-rosa-400" /> Ainda faltam hoje:
+              </p>
+              <div className="flex gap-2">
+                {[
+                  { label: 'kcal', val: faltam.calorias, cor: 'text-orange-500 bg-orange-50' },
+                  { label: 'prot', val: faltam.proteinas, cor: 'text-red-500 bg-red-50' },
+                  { label: 'carb', val: faltam.carboidratos, cor: 'text-blue-500 bg-blue-50' },
+                  { label: 'gord', val: faltam.gorduras, cor: 'text-yellow-600 bg-yellow-50' },
+                ].map((m, i) => (
+                  <div key={i} className={`flex-1 rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
+                    <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(m.val)}</p>
+                    <p className="text-[9px] text-gray-400">{m.label}</p>
                   </div>
-                  <h3 className="font-bold text-white text-base mt-1">{s.nome}</h3>
-                  <p className="text-white/80 text-xs">{s.descricao}</p>
-                </div>
-              </div>
-
-              <div className="p-4">
-                {/* Macros da sugestão */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {[
-                    { label: 'Kcal', val: s.calorias,     cor: 'text-orange-500 bg-orange-50', unit: '' },
-                    { label: 'Prot', val: s.proteinas,    cor: 'text-red-500 bg-red-50',       unit: 'g' },
-                    { label: 'Gord', val: s.gorduras,     cor: 'text-yellow-600 bg-yellow-50', unit: 'g' },
-                    { label: 'Carb', val: s.carboidratos, cor: 'text-blue-500 bg-blue-50',     unit: 'g' },
-                  ].map((m, j) => (
-                    <div key={j} className={`rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
-                      <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(m.val)}{m.unit}</p>
-                      <p className="text-[10px] text-gray-400">{m.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Receita completa sempre visível */}
-                <div className="border-t border-gray-100 pt-3 space-y-4">
-                  {/* Ingredientes */}
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                      <Utensils size={13} className="text-rosa-400" /> Ingredientes
-                    </p>
-                    <ul className="space-y-1">
-                      {s.ingredientes.map((ing, j) => (
-                        <li key={j} className="text-xs text-gray-600 flex items-start gap-2">
-                          <span className="text-rosa-400 mt-0.5 shrink-0">•</span> {ing}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Modo de preparo */}
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                      <ChefHat size={13} className="text-rosa-400" /> Modo de Preparo
-                    </p>
-                    <ol className="space-y-2">
-                      {s.modo_preparo.map((passo, j) => (
-                        <li key={j} className="flex items-start gap-2">
-                          <span className="w-5 h-5 rounded-full bg-rosa-100 text-rosa-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
-                          <p className="text-xs text-gray-600">{passo}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-          )})()}
+          )}
+
+          {/* 3 Receitas geradas pela IA */}
+          {sugestoes.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-2 text-center">
+                3 opções para {HORARIO_LABELS[horarioRefeicao]}
+              </p>
+              {sugestoes.map((s, idx) => (
+                <div key={idx} className="card overflow-hidden p-0 mb-4">
+                  {/* Foto + header */}
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={foodImageUrl(s.imagem_termo)}
+                      alt={s.nome}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'
+                      }}
+                    />
+                    <div className="absolute inset-0 flex flex-col justify-end p-4"
+                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0) 55%)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] bg-ouro-400 text-white px-2 py-0.5 rounded-full font-bold">
+                          Opção {idx + 1}
+                        </span>
+                        <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Clock size={10} /> {s.tempo_preparo}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-white text-base">{s.nome}</h3>
+                      <p className="text-white/80 text-xs">{s.descricao}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {/* Macros */}
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {[
+                        { label: 'Kcal', val: s.calorias,     cor: 'text-orange-500 bg-orange-50', unit: '' },
+                        { label: 'Prot', val: s.proteinas,    cor: 'text-red-500 bg-red-50',       unit: 'g' },
+                        { label: 'Gord', val: s.gorduras,     cor: 'text-yellow-600 bg-yellow-50', unit: 'g' },
+                        { label: 'Carb', val: s.carboidratos, cor: 'text-blue-500 bg-blue-50',     unit: 'g' },
+                      ].map((m, j) => (
+                        <div key={j} className={`rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
+                          <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(Number(m.val))}{m.unit}</p>
+                          <p className="text-[9px] text-gray-400">{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Toggle receita */}
+                    <button
+                      onClick={() => setReceitaAberta(receitaAberta === idx ? null : idx)}
+                      className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Utensils size={12} className="text-rosa-400" />
+                        Ver receita completa
+                      </span>
+                      {receitaAberta === idx
+                        ? <ChevronUp size={14} className="text-gray-400" />
+                        : <ChevronDown size={14} className="text-gray-400" />}
+                    </button>
+
+                    {receitaAberta === idx && (
+                      <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+                        {/* Ingredientes */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                            <Leaf size={12} className="text-green-500" /> Ingredientes
+                          </p>
+                          <ul className="space-y-1">
+                            {s.ingredientes.map((ing, j) => (
+                              <li key={j} className="text-xs text-gray-600 flex items-start gap-2">
+                                <span className="text-rosa-400 mt-0.5 shrink-0">•</span> {ing}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {/* Modo de preparo */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                            <ChefHat size={12} className="text-rosa-400" /> Modo de Preparo
+                          </p>
+                          <ol className="space-y-2">
+                            {s.modo_preparo.map((passo, j) => (
+                              <li key={j} className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-rosa-100 text-rosa-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
+                                <p className="text-xs text-gray-600 leading-relaxed">{passo}</p>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

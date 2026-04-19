@@ -26,28 +26,56 @@
 }
 
 @layer components {
+  /* ── BOTÕES 3D — efeito de profundidade real ── */
   .btn-primary {
     @apply text-white font-semibold py-3.5 px-6 rounded-2xl
-           transition-all duration-200
-           shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
-    background: linear-gradient(135deg, #B76E79 0%, #c47d87 100%);
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(160deg, #d4909a 0%, #B76E79 55%, #9e5462 100%);
+    box-shadow: 0 6px 0 #7a3d48, 0 8px 16px rgba(183,110,121,0.4);
+    transform: translateY(0);
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #a55d67 0%, #B76E79 100%);
+    background: linear-gradient(160deg, #daa0a9 0%, #c07a84 55%, #a55d67 100%);
+    box-shadow: 0 6px 0 #7a3d48, 0 10px 20px rgba(183,110,121,0.5);
+    transform: translateY(-2px);
+  }
+  .btn-primary:active:not(:disabled) {
+    box-shadow: 0 2px 0 #7a3d48, 0 3px 8px rgba(183,110,121,0.3);
+    transform: translateY(4px);
   }
 
   .btn-secondary {
-    @apply bg-white text-rosa-500 font-semibold py-3.5 px-6 rounded-2xl
-           border-2 border-rosa-500 hover:bg-rosa-50 transition-all duration-200;
+    @apply bg-white text-rosa-600 font-semibold py-3.5 px-6 rounded-2xl
+           border-2 border-rosa-300 transition-all duration-150;
+    box-shadow: 0 5px 0 #d4a0aa, 0 7px 12px rgba(183,110,121,0.2);
+    transform: translateY(0);
+  }
+  .btn-secondary:hover {
+    @apply bg-rosa-50;
+    box-shadow: 0 5px 0 #d4a0aa, 0 9px 16px rgba(183,110,121,0.28);
+    transform: translateY(-2px);
+  }
+  .btn-secondary:active {
+    box-shadow: 0 2px 0 #d4a0aa, 0 3px 6px rgba(183,110,121,0.15);
+    transform: translateY(3px);
   }
 
   .btn-gold {
     @apply text-white font-semibold py-3.5 px-6 rounded-2xl
-           transition-all duration-200 shadow-md hover:shadow-lg;
-    background: linear-gradient(135deg, #D4AF37 0%, #e0c050 100%);
+           transition-all duration-150;
+    background: linear-gradient(160deg, #e8cb60 0%, #D4AF37 55%, #b89420 100%);
+    box-shadow: 0 6px 0 #8a6c10, 0 8px 16px rgba(212,175,55,0.4);
+    transform: translateY(0);
   }
   .btn-gold:hover {
-    background: linear-gradient(135deg, #c49b2a 0%, #D4AF37 100%);
+    background: linear-gradient(160deg, #f0d46a 0%, #dcb830 55%, #c49b2a 100%);
+    box-shadow: 0 6px 0 #8a6c10, 0 10px 20px rgba(212,175,55,0.5);
+    transform: translateY(-2px);
+  }
+  .btn-gold:active {
+    box-shadow: 0 2px 0 #8a6c10, 0 3px 8px rgba(212,175,55,0.3);
+    transform: translateY(4px);
   }
 
   .card {
