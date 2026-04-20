@@ -531,7 +531,7 @@ export default function NutritionalAI() {
               {/* Botão analisar */}
               {!resultado && (
                 <button onClick={handleAnalyze} disabled={analyzing} className="btn-gold w-full flex items-center justify-center gap-2">
-                  {analyzing ? <><Loader2 className="w-5 h-5 animate-spin" /> Analisando com Gemini AI...</> : <><Sparkles size={18} /> Analisar com IA</>}
+                  {analyzing ? <><Loader2 className="w-5 h-5 animate-spin" /> Analisando com IA Menovitta...</> : <><Sparkles size={18} /> Analisar com IA</>}
                 </button>
               )}
 

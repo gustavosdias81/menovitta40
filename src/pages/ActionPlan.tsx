@@ -1979,7 +1979,7 @@ export default function ActionPlan() {
                     { hora: '21h30', dica: 'Banho morno ajuda a baixar a temperatura corporal', icon: '🚿' },
                     { hora: '22h', dica: 'Leitura leve, meditação ou respiração 4-7-8', icon: '📖' },
                     { hora: '22h30', dica: 'Quarto fresco (18–20°C), escuro e silencioso', icon: '❄️' },
-                    { hora: '23h', dica: 'Horário alvo de dormir — consistência é chave!', icon: '😴' },
+                    { hora: '22h', dica: 'Horário alvo de dormir — consistência é chave!', icon: '😴' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm">
                       <div className="w-12 text-center flex-shrink-0">

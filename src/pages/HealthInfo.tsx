@@ -198,30 +198,36 @@ interface TopicoIA {
 
 async function gerarTopicosIA(fase: FaseMenopausa, objetivo: Objetivo, nome: string): Promise<TopicoIA[]> {
   const openai = getOpenAI()
+  const objetivoLabel = OBJETIVO_LABELS[objetivo] || 'Saúde Geral'
   const prompt = `Você é a IA Menovitta, especialista em saúde feminina 40+.
-A aluna ${nome || 'Aluna'} está na fase ${fase.replace('_', '-')} e seu objetivo principal é: ${OBJETIVO_LABELS[objetivo]}.
+A aluna ${nome || 'Aluna'} está na fase ${fase.replace(/_/g, '-')} e seu objetivo principal é: ${objetivoLabel}.
 
-Gere 5 tópicos de saúde ALTAMENTE PERSONALIZADOS para o objetivo "${OBJETIVO_LABELS[objetivo]}" nessa fase.
+Gere 5 tópicos de saúde ALTAMENTE PERSONALIZADOS para o objetivo "${objetivoLabel}" nessa fase.
 Cada tópico deve ser acionável, motivador e específico para esse objetivo.
 
-Retorne SOMENTE um JSON válido (sem markdown):
-[
-  {
-    "emoji": "🔥",
-    "titulo": "título curto e direto ao ponto",
-    "resumo": "1 frase de impacto sobre o tópico",
-    "detalhe": "explicação detalhada de 3–4 parágrafos com estratégias práticas, dados científicos e dicas acionáveis para ${OBJETIVO_LABELS[objetivo]}"
-  }
-]`
+Retorne SOMENTE um array JSON válido (sem markdown, sem texto antes ou depois):
+[{"emoji":"🔥","titulo":"título curto","resumo":"1 frase de impacto","detalhe":"explicação de 3 parágrafos com estratégias práticas e dicas acionáveis"}]`
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    max_tokens: 1800,
-    messages: [{ role: 'user', content: prompt }],
-  })
-  const text = response.choices[0]?.message?.content?.trim() || '[]'
-  const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-  return JSON.parse(clean) as TopicoIA[]
+  // 3 tentativas com backoff
+  const delays = [0, 5000, 12000]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 1800,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const text = response.choices[0]?.message?.content?.trim() || '[]'
+      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
+      const arr = JSON.parse(clean)
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error('Resposta inválida da IA')
+      return arr as TopicoIA[]
+    } catch (err) {
+      if (attempt === 2) throw err
+    }
+  }
+  throw new Error('Falha após 3 tentativas')
 }
 
 // ── COMPONENTE ────────────────────────────────────────────────────────────────
@@ -244,16 +250,21 @@ export default function HealthInfo() {
   const cacheKey = `menovitta_health_ia_${user?.id}_${fase}_${objetivo}`
 
   useEffect(() => {
+    // Aguarda o user estar carregado antes de tentar (evita cacheKey com 'undefined')
+    if (!user?.id) return
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
-        setTopicosIA(JSON.parse(cached))
-        setIaCarregada(true)
-        return
-      } catch { /* ignora */ }
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTopicosIA(parsed)
+          setIaCarregada(true)
+          return
+        }
+      } catch { /* ignora cache corrompido */ }
     }
     carregarIA()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const carregarIA = async () => {
     setLoadingIA(true)
