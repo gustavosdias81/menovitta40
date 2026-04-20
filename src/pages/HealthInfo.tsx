@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Sparkles, X, Loader2 } from 'lucide-react'
+import { ChevronRight, Sparkles, X, Loader2, ArrowLeft } from 'lucide-react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { FaseMenopausa, Objetivo } from '../types'
 
@@ -329,6 +329,13 @@ export default function HealthInfo() {
 
       {/* ── HERO BANNER ── */}
       <div className="relative h-52 overflow-hidden">
+        {/* Botão voltar ao app */}
+        <button
+          onClick={() => navigate(-1 as never)}
+          className="absolute top-4 left-4 z-10 w-9 h-9 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </button>
         <img src={heroImg} alt={info.titulo} className="w-full h-full object-cover object-center" />
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(183,110,121,0.9) 100%)' }}
@@ -363,14 +370,21 @@ export default function HealthInfo() {
           )}
 
           {erroIA && !loadingIA && (
-            <div className="py-4 space-y-2">
-              <p className="text-sm text-gray-500 text-center">Não foi possível carregar as dicas personalizadas.</p>
-              {erroMsgIA && (
-                <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                  <p className="text-[11px] text-red-500 font-mono break-all">{erroMsgIA.slice(0, 200)}</p>
-                </div>
-              )}
-              <div className="text-center pt-1">
+            <div className="py-4 space-y-3">
+              <div className="text-center">
+                <p className="text-2xl mb-2">🤖</p>
+                <p className="text-sm text-gray-600 font-medium">
+                  {erroMsgIA.includes('429')
+                    ? 'A IA está um pouco ocupada agora.'
+                    : 'Não foi possível carregar as dicas personalizadas.'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {erroMsgIA.includes('429')
+                    ? 'Muitas solicitações ao mesmo tempo. Aguarde alguns instantes e tente novamente.'
+                    : 'Verifique sua conexão e tente novamente.'}
+                </p>
+              </div>
+              <div className="text-center">
                 <button onClick={carregarIA} className="text-rosa-500 text-sm font-semibold underline">
                   Tentar novamente
                 </button>

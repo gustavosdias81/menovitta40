@@ -449,15 +449,18 @@ export default function NutritionalAI() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4">
+      <div className="flex gap-2 mb-4">
         {[
-          { key: 'scanner'  as const, label: 'Scanner', icon: <Camera size={15} /> },
-          { key: 'sugestoes' as const, label: 'Sugestões', icon: <ChefHat size={15} /> },
+          { key: 'scanner'  as const, label: 'Scanner', icon: <Camera size={18} /> },
+          { key: 'sugestoes' as const, label: 'Sugestões', icon: <ChefHat size={18} /> },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-              tab === t.key ? 'bg-white text-rosa-500 shadow-sm' : 'text-gray-500'
-            }`}>
+            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all active:translate-y-1 active:shadow-none ${
+              tab === t.key
+                ? 'bg-white text-rosa-500 border border-rosa-100'
+                : 'bg-gray-100 text-gray-400'
+            }`}
+            style={tab === t.key ? { boxShadow: '0 4px 0 #e2b8bf, 0 6px 12px rgba(0,0,0,0.08)' } : {}}>
             {t.icon} {t.label}
           </button>
         ))}

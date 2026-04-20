@@ -1975,15 +1975,18 @@ export default function ActionPlan() {
               </div>
 
               {/* Sub-tabs: Práticas | Higiene do Sono */}
-              <div className="flex gap-1 bg-gray-100 rounded-2xl p-1">
+              <div className="flex gap-2 mb-1">
                 {([
                   { key: 'praticas' as const, label: '🧠 Práticas Mentais' },
                   { key: 'sono' as const, label: '🌙 Higiene do Sono' },
                 ]).map(t => (
                   <button key={t.key} onClick={() => setMenteTab(t.key)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      menteTab === t.key ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
-                    }`}>
+                    className={`flex-1 py-3.5 rounded-2xl text-sm font-semibold transition-all active:translate-y-1 active:shadow-none ${
+                      menteTab === t.key
+                        ? 'bg-white text-purple-700 border border-purple-100'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                    style={menteTab === t.key ? { boxShadow: '0 4px 0 #c4b5fd, 0 6px 12px rgba(0,0,0,0.08)' } : {}}>
                     {t.label}
                   </button>
                 ))}
