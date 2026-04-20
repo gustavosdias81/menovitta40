@@ -38,7 +38,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Garante que rotas SPA (ex: /plano, /saude-info) funcionem após instalação como PWA
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//]
       }
     })
   ],

@@ -1193,7 +1193,7 @@ function streakLabel(n: number): string {
 export default function ActionPlan() {
   const { user, profile } = useAuth()
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'treino' | 'mentalidade'>('treino')
   const [menteTab, setMenteTab] = useState<'praticas' | 'sono'>('praticas')
   const [menteModal, setMenteModal] = useState<PraticaMente | null>(null)
@@ -1239,13 +1239,20 @@ export default function ActionPlan() {
 
   useEffect(() => {
     let mounted = true
+
+    // Timeout de segurança absoluto: nunca trava a tela por mais de 5s
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) setLoading(false)
+    }, 5000)
+
     if (user) {
-      loadData(mounted)
+      loadData(mounted).finally(() => clearTimeout(safetyTimeout))
     } else {
       // Sem usuário: não há o que carregar — libera o spinner imediatamente
       setLoading(false)
+      clearTimeout(safetyTimeout)
     }
-    return () => { mounted = false }
+    return () => { mounted = false; clearTimeout(safetyTimeout) }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persistência dos checkboxes de exercícios — sobrevive reload, por usuário e dia
