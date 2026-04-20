@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Sparkles, X, Loader2 } from 'lucide-react'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { FaseMenopausa, Objetivo } from '../types'
 
-// ── OPENAI ────────────────────────────────────────────────────────────────────
-function getOpenAI() {
-  const key = import.meta.env.VITE_OPENAI_API_KEY
-  if (!key) throw new Error('VITE_OPENAI_API_KEY não configurada')
-  return new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true })
+// ── GEMINI ────────────────────────────────────────────────────────────────────
+function getGemini() {
+  const key = import.meta.env.VITE_GEMINI_API_KEY
+  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
+  return new GoogleGenerativeAI(key)
 }
 
 // ── LABEL DO OBJETIVO ─────────────────────────────────────────────────────────
@@ -197,7 +197,8 @@ interface TopicoIA {
 }
 
 async function gerarTopicosIA(fase: FaseMenopausa, objetivo: Objetivo, nome: string): Promise<TopicoIA[]> {
-  const openai = getOpenAI()
+  const genai = getGemini()
+  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' })
   const objetivoLabel = OBJETIVO_LABELS[objetivo] || 'Saúde Geral'
   const prompt = `Você é a IA Menovitta, especialista em saúde feminina 40+.
 A aluna ${nome || 'Aluna'} está na fase ${fase.replace(/_/g, '-')} e seu objetivo principal é: ${objetivoLabel}.
@@ -209,16 +210,12 @@ Retorne SOMENTE um array JSON válido (sem markdown, sem texto antes ou depois):
 [{"emoji":"🔥","titulo":"título curto","resumo":"1 frase de impacto","detalhe":"explicação de 3 parágrafos com estratégias práticas e dicas acionáveis"}]`
 
   // 3 tentativas com backoff
-  const delays = [0, 5000, 12000]
+  const delays = [0, 3000, 8000]
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 1800,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      const text = response.choices[0]?.message?.content?.trim() || '[]'
+      const result = await model.generateContent(prompt)
+      const text = result.response.text().trim()
       const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
       const arr = JSON.parse(clean)
       if (!Array.isArray(arr) || arr.length === 0) throw new Error('Resposta inválida da IA')

@@ -39,7 +39,7 @@ export default function Layout() {
     }
 
     verificarNotificacoes()
-  }, [user])
+  }, [user?.id])
 
   const handleEntendido = async () => {
     if (!modalNotif) return

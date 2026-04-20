@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useAuth } from '../contexts/AuthContext'
 import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
@@ -10,12 +10,11 @@ import {
   Apple, Flame, Zap, Target
 } from 'lucide-react'
 
-// ── IA Nutricional Menovitta ──────────────────────────────────────────────────
-// Inicialização lazy — evita erro se chave não estiver definida no build
-function getOpenAI() {
-  const key = import.meta.env.VITE_OPENAI_API_KEY
-  if (!key) throw new Error('VITE_OPENAI_API_KEY não configurada')
-  return new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true })
+// ── IA Nutricional Menovitta (Gemini) ─────────────────────────────────────────
+function getGemini() {
+  const key = import.meta.env.VITE_GEMINI_API_KEY
+  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
+  return new GoogleGenerativeAI(key)
 }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -62,20 +61,25 @@ const HORARIO_CONTEXTO: Record<HorarioRefeicao, string> = {
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
-  const openai = getOpenAI()
+  const genai = getGemini()
+  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-  const toBase64DataUrl = (file: File): Promise<string> =>
+  const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(',')[1]) // apenas o base64 puro, sem prefixo data:
+      }
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
 
-  const dataUrl = await toBase64DataUrl(imageFile)
-
-  // Normaliza HEIF/HEIC do iPhone → jpeg para compatibilidade
-  const normalizedUrl = dataUrl.replace(/^data:image\/(heif|heic);/, 'data:image/jpeg;')
+  const base64Data = await toBase64(imageFile)
+  // Normaliza HEIF/HEIC do iPhone → jpeg
+  const mimeType = (imageFile.type === 'image/heif' || imageFile.type === 'image/heic')
+    ? 'image/jpeg'
+    : (imageFile.type || 'image/jpeg')
 
   const prompt = `Analise esta foto de refeição e retorne um JSON com análise nutricional estimada.
 Contexto: App de saúde para mulheres 40+ na menopausa que buscam emagrecer.
@@ -95,24 +99,15 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json) com este formato e
 
 Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 
-  const delays = [0, 8000, 20000]
+  const delays = [0, 4000, 10000]
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 800,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: normalizedUrl, detail: 'low' } },
-            ],
-          },
-        ],
-      })
-      const text = response.choices[0]?.message?.content?.trim() || ''
+      const result = await model.generateContent([
+        prompt,
+        { inlineData: { data: base64Data, mimeType } },
+      ])
+      const text = result.response.text().trim()
       const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       return JSON.parse(clean) as AnaliseResultado
     } catch (err) {
@@ -126,7 +121,8 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
 async function gerarReceitasIA(
   horario: HorarioRefeicao, faseMenopausa: string
 ): Promise<Sugestao[]> {
-  const openai = getOpenAI()
+  const genai = getGemini()
+  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
   const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
 Gere EXATAMENTE 3 opções diferentes de receitas saudáveis para o ${HORARIO_CONTEXTO[horario]}.
@@ -155,16 +151,12 @@ Retorne APENAS um array JSON válido com 3 objetos (sem markdown, sem \`\`\`json
   { ... }
 ]`
 
-  const delays = [0, 5000, 15000]
+  const delays = [0, 3000, 8000]
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      const text = response.choices[0]?.message?.content?.trim() || ''
+      const result = await model.generateContent(prompt)
+      const text = result.response.text().trim()
       const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       const arr = JSON.parse(clean)
       if (!Array.isArray(arr) || arr.length === 0) throw new Error('Expected array')
@@ -245,7 +237,7 @@ export default function NutritionalAI() {
       loadTodayData(mounted)
     }
     return () => { mounted = false }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTodayData = async (mounted = true) => {
     if (!user) return

@@ -1246,7 +1246,7 @@ export default function ActionPlan() {
       setLoading(false)
     }
     return () => { mounted = false }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async (mounted = true) => {
     if (!user) { setLoading(false); return }
