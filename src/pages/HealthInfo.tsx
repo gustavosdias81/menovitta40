@@ -198,7 +198,7 @@ interface TopicoIA {
 
 async function gerarTopicosIA(fase: FaseMenopausa, objetivo: Objetivo, nome: string): Promise<TopicoIA[]> {
   const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
   const objetivoLabel = OBJETIVO_LABELS[objetivo] || 'Saúde Geral'
   const prompt = `Você é a IA Menovitta, especialista em saúde feminina 40+.
 A aluna ${nome || 'Aluna'} está na fase ${fase.replace(/_/g, '-')} e seu objetivo principal é: ${objetivoLabel}.
@@ -384,7 +384,8 @@ export default function HealthInfo() {
                 <button
                   key={i}
                   onClick={() => setCardAberto(t)}
-                  className="w-full text-left flex items-center gap-3 p-3 bg-rosa-50 hover:bg-rosa-100 active:bg-rosa-200 rounded-xl transition-all border border-rosa-100"
+                  className="w-full text-left flex items-center gap-3 p-3 bg-rosa-50 rounded-xl transition-all border border-rosa-100 active:translate-y-1 active:shadow-none"
+                  style={{ boxShadow: '0 4px 0 #e2b8bf, 0 6px 10px rgba(0,0,0,0.08)' }}
                 >
                   <span className="text-2xl flex-shrink-0">{t.emoji}</span>
                   <div className="flex-1 min-w-0">
@@ -406,7 +407,8 @@ export default function HealthInfo() {
               <button
                 key={i}
                 onClick={() => setCardAberto(card)}
-                className={`w-full text-left bg-gradient-to-r ${card.color} rounded-2xl border overflow-hidden shadow-sm active:scale-[0.98] transition-all`}
+                className={`w-full text-left bg-gradient-to-r ${card.color} rounded-2xl border overflow-hidden transition-all active:translate-y-1 active:shadow-none`}
+                style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.10), 0 6px 12px rgba(0,0,0,0.07)' }}
               >
                 <div className="flex items-center p-3 gap-3">
                   <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden">

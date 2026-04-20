@@ -222,7 +222,30 @@ export default function Quiz() {
     }, 3000)
   }
 
+  // Validação por step — impede avançar sem responder
+  const canProceed = (): boolean => {
+    switch (STEPS[step].id) {
+      case 'ciclo':       return !!ultimaMenstruacao
+      case 'sintomas':    return sintomas.length > 0
+      case 'saude':       return doencas.length > 0
+      case 'alimentacao': return restricoes.length > 0
+      default:            return true
+    }
+  }
+
+  const ERRO_POR_STEP: Record<string, string> = {
+    ciclo:       'Selecione quando foi sua última menstruação para continuar.',
+    sintomas:    'Marque pelo menos 1 sintoma (ou "Sem sintomas") para continuar.',
+    saude:       'Marque pelo menos 1 condição (ou "Nenhuma das anteriores") para continuar.',
+    alimentacao: 'Marque pelo menos 1 restrição (ou "Sem restrições") para continuar.',
+  }
+
   const nextStep = () => {
+    if (!canProceed()) {
+      setErro(ERRO_POR_STEP[STEPS[step].id] || 'Selecione uma opção para continuar.')
+      return
+    }
+    setErro('')
     if (step === STEPS.length - 2) handleFinish()
     else setStep(s => Math.min(s + 1, STEPS.length - 1))
   }
@@ -242,6 +265,9 @@ export default function Quiz() {
   }[f])
 
   const progress = (step / (STEPS.length - 1)) * 100
+
+  // Limpa erro de validação assim que a usuária faz uma seleção
+  React.useEffect(() => { setErro('') }, [ultimaMenstruacao, sintomas, doencas, restricoes])
 
   // ── CHECKBOX ──────────────────────────────────────────────
   const Checkbox = ({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) => (
@@ -745,7 +771,7 @@ export default function Quiz() {
           )}
           <button
             onClick={nextStep}
-            disabled={loading || (STEPS[step].id === 'ciclo' && !ultimaMenstruacao)}
+            disabled={loading}
             className="btn-primary flex-1 flex items-center justify-center gap-2"
           >
             {loading ? (

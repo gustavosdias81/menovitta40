@@ -62,7 +62,7 @@ const HORARIO_CONTEXTO: Record<HorarioRefeicao, string> = {
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
   const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -122,7 +122,7 @@ async function gerarReceitasIA(
   horario: HorarioRefeicao, faseMenopausa: string
 ): Promise<Sugestao[]> {
   const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
   const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
 Gere EXATAMENTE 3 opções diferentes de receitas saudáveis para o ${HORARIO_CONTEXTO[horario]}.
