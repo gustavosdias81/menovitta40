@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -33,35 +33,52 @@ const faseBadge = (f: FaseMenopausa) => {
 export default function Profile() {
   const { profile, loading: authLoading, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const [localLoading, setLocalLoading] = useState(false)
+  const [tentativas, setTentativas] = useState(0)
 
-  // Ao montar: se auth já terminou e profile ainda é null, busca uma vez.
-  // Depende de authLoading para não conflitar com o fetch inicial do AuthContext.
+  // Busca o perfil mostrando spinner local — evita o estado "erro" prematuro
+  const buscarPerfil = useCallback(async () => {
+    setLocalLoading(true)
+    try {
+      await refreshProfile()
+    } finally {
+      setLocalLoading(false)
+      setTentativas(t => t + 1)
+    }
+  }, [refreshProfile])
+
+  // Ao montar (ou ao auth terminar): se profile está ausente, busca automaticamente
   useEffect(() => {
     if (!authLoading && !profile) {
-      refreshProfile()
+      buscarPerfil()
     }
   }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auth ainda inicializando → spinner simples (sem retry, App.tsx já cobre isso)
-  if (authLoading) return (
-    <div className="page-container flex items-center justify-center min-h-[60vh]">
-      <div className="w-10 h-10 border-3 border-rosa-400 border-t-transparent rounded-full animate-spin" />
+  // Spinner enquanto auth inicializa OU enquanto busca local está em curso
+  if (authLoading || localLoading) return (
+    <div className="page-container flex flex-col items-center justify-center min-h-[60vh] gap-3">
+      <div className="w-10 h-10 border-[3px] border-rosa-400 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-400">Carregando seu perfil...</p>
     </div>
   )
 
-  // Auth pronto mas profile indisponível → botão de retry explícito
+  // Após tentativa automática, ainda sem perfil → botão de retry explícito
   if (!profile) return (
     <div className="page-container flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className="w-12 h-12 rounded-full bg-rosa-50 flex items-center justify-center">
-        <User size={24} className="text-rosa-400" />
+      <div className="w-14 h-14 rounded-full bg-rosa-50 flex items-center justify-center">
+        <User size={26} className="text-rosa-400" />
       </div>
-      <p className="text-gray-500 text-sm text-center font-medium">Não foi possível carregar seu perfil</p>
-      <p className="text-gray-400 text-xs text-center">Verifique sua conexão e tente novamente</p>
+      <div className="text-center">
+        <p className="text-gray-600 text-sm font-medium">Não foi possível carregar seu perfil</p>
+        <p className="text-gray-400 text-xs mt-1">
+          {tentativas > 0 ? 'O servidor pode estar lento. Tente novamente.' : 'Verifique sua conexão.'}
+        </p>
+      </div>
       <button
-        onClick={refreshProfile}
-        className="flex items-center gap-2 text-rosa-500 text-sm font-semibold bg-rosa-50 px-4 py-2 rounded-xl"
+        onClick={buscarPerfil}
+        className="flex items-center gap-2 text-rosa-500 text-sm font-semibold bg-rosa-50 px-5 py-2.5 rounded-xl active:scale-95 transition-transform"
       >
-        <RefreshCw size={16} /> Tentar novamente
+        <RefreshCw size={15} /> Tentar novamente
       </button>
     </div>
   )
