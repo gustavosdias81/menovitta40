@@ -244,6 +244,7 @@ export default function HealthInfo() {
   const [topicosIA, setTopicosIA] = useState<TopicoIA[]>([])
   const [loadingIA, setLoadingIA] = useState(false)
   const [erroIA, setErroIA] = useState(false)
+  const [erroMsgIA, setErroMsgIA] = useState('')
   const [iaCarregada, setIaCarregada] = useState(false)
 
   // Cache IA por fase+objetivo no localStorage
@@ -269,6 +270,7 @@ export default function HealthInfo() {
   const carregarIA = async () => {
     setLoadingIA(true)
     setErroIA(false)
+    setErroMsgIA('')
     try {
       const topicos = await gerarTopicosIA(fase, objetivo, primeiroNome)
       setTopicosIA(topicos)
@@ -276,6 +278,8 @@ export default function HealthInfo() {
       localStorage.setItem(cacheKey, JSON.stringify(topicos))
     } catch (err) {
       console.error('HealthInfo IA error:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      setErroMsgIA(msg)
       setErroIA(true)
     } finally {
       setLoadingIA(false)
@@ -362,11 +366,18 @@ export default function HealthInfo() {
           )}
 
           {erroIA && !loadingIA && (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-400 mb-3">Não foi possível carregar as dicas personalizadas agora.</p>
-              <button onClick={carregarIA} className="text-rosa-500 text-sm font-semibold">
-                Tentar novamente
-              </button>
+            <div className="py-4 space-y-2">
+              <p className="text-sm text-gray-500 text-center">Não foi possível carregar as dicas personalizadas.</p>
+              {erroMsgIA && (
+                <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                  <p className="text-[11px] text-red-500 font-mono break-all">{erroMsgIA.slice(0, 200)}</p>
+                </div>
+              )}
+              <div className="text-center pt-1">
+                <button onClick={carregarIA} className="text-rosa-500 text-sm font-semibold underline">
+                  Tentar novamente
+                </button>
+              </div>
             </div>
           )}
 
