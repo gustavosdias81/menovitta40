@@ -198,7 +198,7 @@ interface TopicoIA {
 
 async function gerarTopicosIA(fase: FaseMenopausa, objetivo: Objetivo, nome: string): Promise<TopicoIA[]> {
   const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash' })
   const objetivoLabel = OBJETIVO_LABELS[objetivo] || 'Saúde Geral'
   const prompt = `Você é a IA Menovitta, especialista em saúde feminina 40+.
 A aluna ${nome || 'Aluna'} está na fase ${fase.replace(/_/g, '-')} e seu objetivo principal é: ${objetivoLabel}.
