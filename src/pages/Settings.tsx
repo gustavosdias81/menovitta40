@@ -31,8 +31,9 @@ export default function Settings() {
     window.location.href = '/login'
   }
 
-  // Número do WhatsApp de suporte (substituir pelo real)
-  const whatsappNumber = '5511999999999'
+  // Número do WhatsApp de suporte — configurável via VITE_SUPPORT_WHATSAPP no Vercel
+  // Formato esperado: DDI+DDD+número sem símbolos (ex: 5511987654321)
+  const whatsappNumber = import.meta.env.VITE_SUPPORT_WHATSAPP || '5511999999999'
   const whatsappMessage = encodeURIComponent(
     `Olá! Sou aluna do Menovitta 4.0. Preciso de ajuda.\n\nNome: ${profile?.nome}\nEmail: ${profile?.email}`
   )

@@ -66,7 +66,7 @@ export default function Profile() {
     </div>
   )
 
-  const imc = profile.peso && profile.altura
+  const imc = profile.peso && profile.altura && profile.altura > 0
     ? (profile.peso / (profile.altura * profile.altura)).toFixed(1)
     : '—'
 

@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user && !profile && !loading) {
       fetchProfile(user.id)
     }
-  }, [user, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const marcarQuizCompleto = () => {
     if (user?.id) localStorage.setItem(`quiz_done_${user.id}`, '1')
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     // Cria linha na tabela profiles logo após o cadastro
     if (!error && data.user) {
-      await supabase.from('profiles').upsert({
+      const { error: upsertError } = await supabase.from('profiles').upsert({
         user_id: data.user.id,
         email,
         nome,
@@ -159,13 +159,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         is_admin: false,
         ativo: true,
       }, { onConflict: 'user_id' })
+      if (upsertError) {
+        console.error('Erro ao criar perfil:', upsertError)
+        return { error: upsertError as unknown as Error }
+      }
+      // Já busca o profile recém-criado para evitar race na primeira tela
+      await fetchProfile(data.user.id)
     }
     return { error: error as Error | null }
   }
 
   const signOut = async () => {
+    // Limpa marcador local de quiz antes de logout — evita estado residual
+    // caso outra usuária faça login no mesmo dispositivo
+    if (user?.id) {
+      try { localStorage.removeItem(`quiz_done_${user.id}`) } catch { /* ignora */ }
+    }
     await supabase.auth.signOut()
     setProfile(null)
+    setQuizDone(false)
   }
 
   return (

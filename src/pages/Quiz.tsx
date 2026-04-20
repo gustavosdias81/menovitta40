@@ -205,10 +205,16 @@ export default function Quiz() {
     setLoading(false)
     setStep(STEPS.length - 1) // mostra tela "Pronto!" por 3 segundos
 
-    // Atualiza perfil e depois marca quiz como completo + navega
-    // IMPORTANTE: marcarQuizCompleto() DENTRO do timeout — se fosse antes,
-    // a rota /quiz detectaria quizCompleto=true e redirecionaria para /saude-info
-    // imediatamente, pulando a tela "Pronto!" e criando o bounce bug.
+    // Persiste quiz_done no localStorage IMEDIATAMENTE — garante que se a
+    // aluna fechar a aba durante os 3s de "Pronto!", o próximo login não
+    // força ela a refazer o quiz (DB já tem quiz_completo=true também).
+    if (user?.id) {
+      try { localStorage.setItem(`quiz_done_${user.id}`, '1') } catch { /* ignora */ }
+    }
+
+    // Atualiza perfil e depois marca quiz como completo (React state) + navega
+    // marcarQuizCompleto() (setQuizDone=true) fica DENTRO do timeout para que
+    // a tela "Pronto!" seja visível por 3s antes do QuizGuard liberar a rota.
     refreshProfile()
     setTimeout(() => {
       marcarQuizCompleto()           // agora o QuizGuard pode liberar o layout

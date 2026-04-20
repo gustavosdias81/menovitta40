@@ -1248,6 +1248,30 @@ export default function ActionPlan() {
     return () => { mounted = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Persistência dos checkboxes de exercícios — sobrevive reload, por usuário e dia
+  const hojeKeyPersist = new Date().toISOString().split('T')[0]
+  const exerciciosStorageKey = user?.id ? `menovitta_exercicios_${user.id}_${hojeKeyPersist}` : null
+
+  // Carrega estado salvo no mount / mudança de usuário
+  useEffect(() => {
+    if (!exerciciosStorageKey) return
+    try {
+      const saved = localStorage.getItem(exerciciosStorageKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed && typeof parsed === 'object') setExerciciosMarcados(parsed)
+      }
+    } catch { /* cache corrompido — ignora */ }
+  }, [exerciciosStorageKey])
+
+  // Salva estado a cada mudança
+  useEffect(() => {
+    if (!exerciciosStorageKey) return
+    try {
+      localStorage.setItem(exerciciosStorageKey, JSON.stringify(exerciciosMarcados))
+    } catch { /* localStorage cheio ou desabilitado — ignora */ }
+  }, [exerciciosMarcados, exerciciosStorageKey])
+
   const loadData = async (mounted = true) => {
     if (!user) { setLoading(false); return }
     setLoading(true)
@@ -1278,14 +1302,29 @@ export default function ActionPlan() {
       .eq('user_id', user.id)
   }
 
-  const marcarTreinoConcluido = async (foco: string, duracao: string) => {
+  const marcarTreinoConcluido = async (foco: string, duracao: string, diaIndex: number) => {
     if (!user || marcando) return
     setMarcando(true)
-    const hoje = new Date().toISOString().split('T')[0]
-    await saveTreinoLog({ user_id: user.id, data: hoje, foco, duracao, local })
-    const { data } = await getTreinoLogs(user.id, 60)
-    if (data) setTreinoLogs(data as TreinoLog[])
-    setMarcando(false)
+    try {
+      const hoje = new Date().toISOString().split('T')[0]
+      const res = await saveTreinoLog({ user_id: user.id, data: hoje, foco, duracao, local })
+      if (res && (res as { error?: unknown }).error) throw (res as { error: unknown }).error
+      const { data } = await getTreinoLogs(user.id, 60)
+      if (data) setTreinoLogs(data as TreinoLog[])
+      // Limpa os checkboxes desse dia/local após registro — evita ficar marcado eternamente
+      setExerciciosMarcados(prev => {
+        const limpo: Record<string, boolean> = {}
+        Object.keys(prev).forEach(k => {
+          if (!k.startsWith(`${diaIndex}-${local}-`)) limpo[k] = prev[k]
+        })
+        return limpo
+      })
+    } catch (e) {
+      console.error('Erro ao registrar treino:', e)
+      alert('Erro ao registrar treino. Verifique sua conexão e tente novamente.')
+    } finally {
+      setMarcando(false)
+    }
   }
 
   if (loading) {
@@ -1735,7 +1774,7 @@ export default function ActionPlan() {
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            marcarTreinoConcluido(d.foco, d.duracao)
+                                            marcarTreinoConcluido(d.foco, d.duracao, i)
                                           }}
                                           disabled={!todosFeitos || marcando}
                                           className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${

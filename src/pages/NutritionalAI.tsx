@@ -307,11 +307,11 @@ export default function NutritionalAI() {
     } catch (err: unknown) {
       console.error('Erro análise IA:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_OPENAI_API_KEY')) {
-        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_OPENAI_API_KEY nas variáveis de ambiente.')
-      } else if (msg.includes('401') || msg.includes('Incorrect API key')) {
-        setScanError('Chave OpenAI inválida ou sem permissão. Verifique a chave no Vercel.')
-      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('insufficient_quota')) {
+      if (msg.includes('VITE_GEMINI_API_KEY')) {
+        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY nas variáveis de ambiente.')
+      } else if (msg.includes('401') || msg.includes('API key') || msg.includes('API_KEY_INVALID')) {
+        setScanError('Chave da IA inválida ou sem permissão. Verifique a chave no Vercel.')
+      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
         setScanError('Limite de requisições atingido. Aguarde alguns minutos e tente novamente.')
       } else {
         setScanError(`Erro ao analisar: ${msg.slice(0, 100)}`)
@@ -339,8 +339,8 @@ export default function NutritionalAI() {
 
   // ── Sugestão handler ─────────────────────────────────────────────────────────
   const handleGerarSugestao = async () => {
-    if (!import.meta.env.VITE_OPENAI_API_KEY) {
-      setSugestaoError('Chave da IA não configurada. Adicione VITE_OPENAI_API_KEY no Vercel.')
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      setSugestaoError('Chave da IA não configurada. Adicione VITE_GEMINI_API_KEY no Vercel.')
       return
     }
     setLoadingSugestao(true)
@@ -355,11 +355,11 @@ export default function NutritionalAI() {
     } catch (err: unknown) {
       console.error('IA Nutricional error:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_OPENAI_API_KEY')) {
-        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_OPENAI_API_KEY.')
-      } else if (msg.includes('401') || msg.includes('Incorrect API key')) {
-        setSugestaoError('Chave OpenAI inválida. Verifique no Vercel → Environment Variables.')
-      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('insufficient_quota')) {
+      if (msg.includes('VITE_GEMINI_API_KEY')) {
+        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY.')
+      } else if (msg.includes('401') || msg.includes('API key') || msg.includes('API_KEY_INVALID')) {
+        setSugestaoError('Chave da IA inválida. Verifique no Vercel → Environment Variables.')
+      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
         setSugestaoError('Limite atingido. Aguarde alguns minutos.')
       } else {
         setSugestaoError(`Erro: ${msg.slice(0, 80)}. Tente novamente.`)
