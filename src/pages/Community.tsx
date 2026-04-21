@@ -202,6 +202,7 @@ export default function Community() {
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [artigos, setArtigos] = useState<Artigo[]>(ARTIGOS_INICIAIS as unknown as Artigo[])
   const [loading, setLoading] = useState(false)
+  const [erroPosts, setErroPosts] = useState(false)
   const [loadingArtigos, setLoadingArtigos] = useState(false)
   const [ranking, setRanking] = useState<RankingEntry[]>([])
   const [loadingRanking, setLoadingRanking] = useState(false)
@@ -242,8 +243,10 @@ export default function Community() {
 
   const loadPosts = async () => {
     setLoading(true)
+    setErroPosts(false)
     try {
-      const { data } = await getCommunityPosts(50)
+      const { data, error } = await getCommunityPosts(50)
+      if (error) throw error
       if (data) {
         const all = data as CommunityPost[]
         const visiveis = isAdmin ? all : all.filter(p => !p.oculto)
@@ -254,7 +257,9 @@ export default function Community() {
         })
         setPosts(visiveis)
       }
-    } catch { /* silencia */ }
+    } catch {
+      setErroPosts(true)
+    }
     finally { setLoading(false) }
   }
 
@@ -528,6 +533,18 @@ export default function Community() {
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-rosa-500 animate-spin" />
+            </div>
+          ) : erroPosts ? (
+            <div className="text-center py-16">
+              <p className="text-3xl mb-3">📡</p>
+              <h3 className="font-semibold text-gray-500 mb-1">Servidor lento para responder</h3>
+              <p className="text-sm text-gray-400 mb-4">Pode ser o banco acordando. Tente novamente.</p>
+              <button
+                onClick={loadPosts}
+                className="flex items-center gap-2 mx-auto text-rosa-500 text-sm font-semibold bg-rosa-50 px-5 py-2.5 rounded-xl active:scale-95 transition-transform"
+              >
+                🔄 Tentar novamente
+              </button>
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-16">

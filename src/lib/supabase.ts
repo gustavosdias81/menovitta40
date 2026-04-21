@@ -14,7 +14,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('⚠️ Variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY não configuradas no .env')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Fetch com timeout de 10s — evita que queries fiquem penduradas para sempre
+// quando o banco do Supabase está dormindo (plano gratuito tem cold start).
+const fetchComTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+  return fetch(url as RequestInfo, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer))
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: { fetch: fetchComTimeout },
+})
 
 // ============================================================
 // FUNÇÕES AUXILIARES DE BANCO
