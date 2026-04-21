@@ -71,38 +71,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true
 
     // Timeout de segurança — nunca trava na tela de carregamento
+    // 3s é suficiente para getSession() (auth, sem banco) — fetchProfile
+    // roda em background e não precisa deste timeout.
     const timeout = setTimeout(() => {
       if (mounted) {
         console.warn('Auth timeout — forçando carregamento')
         setLoading(false)
       }
-    }, 8000)
+    }, 3000)
 
     const init = async () => {
+      let sessionUser: import('@supabase/supabase-js').User | null = null
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!mounted) return
 
+        sessionUser = session?.user ?? null
         setSession(session)
-        setUser(session?.user ?? null)
+        setUser(sessionUser)
 
-        if (session?.user) {
-          // ── CRÍTICO: verificar localStorage ANTES de setLoading(false) ──
-          // Sem isso, há uma janela onde loading=false mas quizDone=false,
-          // fazendo o guard redirecionar para /quiz e desmontar o Layout.
-          const localDone = localStorage.getItem(`quiz_done_${session.user.id}`) === '1'
+        if (sessionUser) {
+          // Verificar localStorage ANTES de setLoading(false) para evitar
+          // janela onde quizDone=false causa redirect para /quiz.
+          const localDone = localStorage.getItem(`quiz_done_${sessionUser.id}`) === '1'
           if (localDone) setQuizDone(true)
-
-          // Busca perfil (e já atualiza quizDone via fetchProfile se quiz_completo=true)
-          await fetchProfile(session.user.id)
         }
       } catch (err) {
         console.error('Erro auth:', err)
       } finally {
+        // ── CRÍTICO: libera o spinner ANTES de buscar o perfil ──
+        // getSession() é rápido (< 300ms). fetchProfile() pode demorar
+        // 20-60s no plano gratuito (banco dormindo). Separar os dois
+        // faz o app aparecer quase instantaneamente para o usuário.
         if (mounted) {
           clearTimeout(timeout)
-          setLoading(false) // quizDone já está correto aqui
+          setLoading(false)
         }
+      }
+
+      // Busca o perfil em segundo plano — não bloqueia a UI
+      if (mounted && sessionUser) {
+        await fetchProfile(sessionUser.id)
       }
     }
 
