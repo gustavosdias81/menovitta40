@@ -2011,24 +2011,49 @@ export default function ActionPlan() {
 
               {/* ── HIGIENE DO SONO ── */}
               {menteTab === 'sono' && (
-                <div className="space-y-3">
-                  <div className="card border-2 border-dashed border-purple-200 bg-purple-50/50 text-center py-6">
-                    <p className="text-3xl mb-2">🌙</p>
-                    <p className="font-semibold text-purple-700 text-sm mb-1">Protocolo de Higiene do Sono</p>
-                    <p className="text-xs text-purple-500 leading-relaxed px-4">
-                      Em breve você terá acesso ao protocolo completo de higiene do sono,
-                      desenvolvido especialmente para esta fase.
-                    </p>
+                <div className="space-y-4">
+
+                  {/* Header */}
+                  <div className="flex items-center gap-3 px-1">
+                    <div className="w-10 h-10 bg-purple-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl">🌙</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">Protocolo de Higiene do Sono</p>
+                      <p className="text-xs text-gray-400">Criando sua rotina para dormir melhor</p>
+                    </div>
                   </div>
 
-                  {/* Dicas gerais de sono enquanto o protocolo não está disponível */}
+                  {/* Player de vídeo */}
+                  <div className="rounded-2xl overflow-hidden shadow-md bg-black"
+                    style={{ boxShadow: '0 4px 0 #c4b5fd, 0 6px 16px rgba(0,0,0,0.15)' }}>
+                    <video
+                      controls
+                      controlsList="nodownload"
+                      playsInline
+                      preload="metadata"
+                      className="w-full"
+                      style={{ maxHeight: '260px', objectFit: 'contain', background: '#000' }}
+                    >
+                      <source
+                        src="https://cxcfjnqelfjdmlezixxx.supabase.co/storage/v1/object/public/videos/Criando_Sua_Rotina_de_Sono.mp4"
+                        type="video/mp4"
+                      />
+                      Seu navegador não suporta vídeo.
+                    </video>
+                  </div>
+
+                  {/* Dicas rápidas de sono */}
+                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider px-1">
+                    ⚡ Checklist noturno
+                  </p>
                   {[
-                    { hora: '20h', dica: 'Pare de comer 2–3h antes de dormir', icon: '🍽️' },
-                    { hora: '21h', dica: 'Diminua luzes e evite telas brilhantes', icon: '💡' },
+                    { hora: '20h',   dica: 'Pare de comer 2–3h antes de dormir',          icon: '🍽️' },
+                    { hora: '21h',   dica: 'Diminua luzes e evite telas brilhantes',        icon: '💡' },
                     { hora: '21h30', dica: 'Banho morno ajuda a baixar a temperatura corporal', icon: '🚿' },
-                    { hora: '22h', dica: 'Leitura leve, meditação ou respiração 4-7-8', icon: '📖' },
-                    { hora: '22h30', dica: 'Quarto fresco (18–20°C), escuro e silencioso', icon: '❄️' },
-                    { hora: '22h', dica: 'Horário alvo de dormir — consistência é chave!', icon: '😴' },
+                    { hora: '22h',   dica: 'Leitura leve, meditação ou respiração 4-7-8',   icon: '📖' },
+                    { hora: '22h30', dica: 'Quarto fresco (18–20°C), escuro e silencioso',  icon: '❄️' },
+                    { hora: '22h',   dica: 'Horário alvo de dormir — consistência é chave!', icon: '😴' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm">
                       <div className="w-12 text-center flex-shrink-0">
