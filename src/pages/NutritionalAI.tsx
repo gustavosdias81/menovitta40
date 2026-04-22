@@ -117,7 +117,7 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   throw new Error('Falha após 3 tentativas')
 }
 
-// ── Sugestão de refeição (3 receitas por horário) ────────────────────────────
+// ── Sugestão de refeição (1 receita por horário) ────────────────────────────
 async function gerarReceitasIA(
   horario: HorarioRefeicao, faseMenopausa: string
 ): Promise<Sugestao[]> {
@@ -125,15 +125,14 @@ async function gerarReceitasIA(
   const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
   const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
-Gere EXATAMENTE 3 opções diferentes de receitas saudáveis para o ${HORARIO_CONTEXTO[horario]}.
+Gere EXATAMENTE 1 receita saudável e saborosa para o ${HORARIO_CONTEXTO[horario]}.
 
 Regras:
-- Cada receita deve ser diferente das outras (variar proteína, textura, sabor)
 - Ingredientes acessíveis no Brasil
 - Máximo 20 minutos de preparo
 - Priorize proteínas e alimentos anti-inflamatórios
 
-Retorne APENAS um array JSON válido com 3 objetos (sem markdown, sem \`\`\`json):
+Retorne APENAS um array JSON válido com 1 objeto (sem markdown, sem \`\`\`json):
 [
   {
     "nome": "Nome apetitoso",
@@ -146,9 +145,7 @@ Retorne APENAS um array JSON válido com 3 objetos (sem markdown, sem \`\`\`json
     "ingredientes": ["qtd + ingrediente", "..."],
     "modo_preparo": ["Passo 1.", "Passo 2.", "Passo 3."],
     "imagem_termo": "food search term in English for Unsplash"
-  },
-  { ... },
-  { ... }
+  }
 ]`
 
   const delays = [0, 3000, 8000]
@@ -647,8 +644,8 @@ export default function NutritionalAI() {
               className="btn-gold w-full flex items-center justify-center gap-2"
             >
               {loadingSugestao
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando 3 receitas com IA...</>
-                : <><Sparkles size={18} /> {sugestoes.length > 0 ? 'Gerar novas receitas' : `Gerar 3 receitas — ${HORARIO_LABELS[horarioRefeicao]}`}</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando receita com IA...</>
+                : <><Sparkles size={18} /> {sugestoes.length > 0 ? 'Gerar nova receita' : `Gerar receita — ${HORARIO_LABELS[horarioRefeicao]}`}</>
               }
             </button>
 

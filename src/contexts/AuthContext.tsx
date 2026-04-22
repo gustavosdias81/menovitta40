@@ -31,8 +31,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [quizDone, setQuizDone] = useState(false)
 
-  // Busca perfil e já atualiza quizDone se profile.quiz_completo = true
+  // Busca perfil — padrão stale-while-revalidate:
+  // 1) Mostra cache do localStorage IMEDIATAMENTE (zero espera)
+  // 2) Busca dado fresco do banco em background
+  // 3) Atualiza tela e cache quando o banco responder
   const fetchProfile = async (userId: string) => {
+    const cacheKey = `menovitta_profile_${userId}`
+
+    // ── Passo 1: carregar cache imediatamente ──
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const parsed = JSON.parse(cached) as Profile
+        setProfile(parsed)
+        if (parsed.quiz_completo === true) setQuizDone(true)
+      }
+    } catch { /* cache corrompido — ignora */ }
+
+    // ── Passo 2: buscar dado fresco do banco ──
     try {
       const { data } = await supabase
         .from('profiles')
@@ -42,9 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         setProfile(data as Profile)
         if ((data as Profile).quiz_completo === true) setQuizDone(true)
+        // Atualiza cache com dado fresco
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)) } catch { /* ignora */ }
       }
     } catch (err) {
       console.error('Erro perfil:', err)
+      // Se falhou mas temos cache, o app já está mostrando o perfil — ok
     }
   }
 
@@ -179,10 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    // Limpa marcador local de quiz antes de logout — evita estado residual
+    // Limpa dados locais antes de logout — evita estado residual
     // caso outra usuária faça login no mesmo dispositivo
     if (user?.id) {
-      try { localStorage.removeItem(`quiz_done_${user.id}`) } catch { /* ignora */ }
+      try {
+        localStorage.removeItem(`quiz_done_${user.id}`)
+        localStorage.removeItem(`menovitta_profile_${user.id}`)
+      } catch { /* ignora */ }
     }
     await supabase.auth.signOut()
     setProfile(null)

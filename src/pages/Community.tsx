@@ -241,9 +241,28 @@ export default function Community() {
     finally { setLoadingArtigos(false) }
   }
 
+  const POSTS_CACHE_KEY = 'menovitta_community_posts'
+
   const loadPosts = async () => {
-    setLoading(true)
     setErroPosts(false)
+
+    // ── Passo 1: mostrar cache imediatamente (zero espera) ──
+    try {
+      const cached = localStorage.getItem(POSTS_CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached) as CommunityPost[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setPosts(parsed)
+          setLoading(false) // cache já resolveu — não mostra spinner
+        } else {
+          setLoading(true)
+        }
+      } else {
+        setLoading(true)
+      }
+    } catch { setLoading(true) }
+
+    // ── Passo 2: atualizar com dado fresco do banco ──
     try {
       const { data, error } = await getCommunityPosts(50)
       if (error) throw error
@@ -256,11 +275,14 @@ export default function Community() {
           return 0
         })
         setPosts(visiveis)
+        try { localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(visiveis)) } catch { /* ignora */ }
       }
     } catch {
-      setErroPosts(true)
+      // Se falhou mas temos cache, o usuário já está vendo posts — não mostra erro
+      if (posts.length === 0) setErroPosts(true)
+    } finally {
+      setLoading(false)
     }
-    finally { setLoading(false) }
   }
 
   const handlePost = async () => {
