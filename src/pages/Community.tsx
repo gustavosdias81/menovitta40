@@ -221,8 +221,6 @@ export default function Community() {
     if (activeTab === 'ranking') loadRanking()
   }, [activeTab])
 
-  useEffect(() => { loadArtigos() }, [])
-
   const loadRanking = async () => {
     setLoadingRanking(true)
     try {

@@ -19,6 +19,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const fetchComTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 10_000)
+  
+  // Se o Supabase ou o navegador enviar um signal para cancelar a req,
+  // repassamos esse cancelamento para o nosso controller interno.
+  if (options?.signal) {
+    options.signal.addEventListener('abort', () => controller.abort())
+  }
+  
   return fetch(url as RequestInfo, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
 }
