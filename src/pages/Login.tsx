@@ -38,7 +38,7 @@ export default function Login() {
       {/* Logo centralizada — clean, sem fundo colorido */}
       <div className="flex flex-col items-center mb-8">
         <img
-          src="/Logo.png"
+          src="/logo.png"
           alt="Menovitta 4.0"
           className="w-44 h-44 object-contain mb-2"
         />
