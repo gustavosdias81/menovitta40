@@ -198,11 +198,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    // Limpa dados locais antes de logout — evita estado residual
-    // caso outra usuária faça login no mesmo dispositivo
+    // Remove apenas o cache de perfil (dados sensíveis).
+    // quiz_done é preservado por user_id — evita que cold-start do banco
+    // redirecione a usuária para /quiz no próximo login.
     if (user?.id) {
       try {
-        localStorage.removeItem(`quiz_done_${user.id}`)
         localStorage.removeItem(`menovitta_profile_${user.id}`)
       } catch { /* ignora */ }
     }

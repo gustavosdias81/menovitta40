@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // quando o banco do Supabase está dormindo (plano gratuito tem cold start).
 const fetchComTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10_000)
+  const timer = setTimeout(() => controller.abort(), 25_000)
   
   // Se o Supabase ou o navegador enviar um signal para cancelar a req,
   // repassamos esse cancelamento para o nosso controller interno.

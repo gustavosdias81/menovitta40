@@ -214,35 +214,58 @@ export default function Community() {
   const [moderando, setModerando] = useState<string | null>(null)
   const [postFotoUrl, setPostFotoUrl] = useState<string>('')
   const postFileRef = useRef<HTMLInputElement>(null)
+  // Refs para evitar state updates em componente desmontado e chamadas duplicadas
+  const mountedRef = useRef(true)
+  const fetchingRef = useRef<Record<string, boolean>>({})
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'feed') loadPosts()
     if (activeTab === 'news') loadArtigos()
     if (activeTab === 'ranking') loadRanking()
-  }, [activeTab])
+  }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRanking = async () => {
+    if (fetchingRef.current['ranking']) return
+    fetchingRef.current['ranking'] = true
     setLoadingRanking(true)
     try {
       const { data } = await getRankingMensal(10)
-      if (data) setRanking(data)
+      if (mountedRef.current && data) setRanking(data)
     } catch { /* silencia */ }
-    finally { setLoadingRanking(false) }
+    finally {
+      if (mountedRef.current) setLoadingRanking(false)
+      fetchingRef.current['ranking'] = false
+    }
   }
 
   const loadArtigos = async () => {
+    if (fetchingRef.current['artigos']) return
+    fetchingRef.current['artigos'] = true
     setLoadingArtigos(true)
     try {
       const { data } = await getArtigos(true)
-      if (data) setArtigos(data as Artigo[])
+      if (mountedRef.current && data) setArtigos(data as Artigo[])
     } catch { /* silencia */ }
-    finally { setLoadingArtigos(false) }
+    finally {
+      if (mountedRef.current) setLoadingArtigos(false)
+      fetchingRef.current['artigos'] = false
+    }
   }
 
   const POSTS_CACHE_KEY = 'menovitta_community_posts'
 
   const loadPosts = async () => {
+    if (fetchingRef.current['posts']) return
+    fetchingRef.current['posts'] = true
     setErroPosts(false)
+
+    // Variável local — evita stale closure ao checar se cache foi carregado
+    let loadedFromCache = false
 
     // ── Passo 1: mostrar cache imediatamente (zero espera) ──
     try {
@@ -250,21 +273,24 @@ export default function Community() {
       if (cached) {
         const parsed = JSON.parse(cached) as CommunityPost[]
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setPosts(parsed)
-          setLoading(false) // cache já resolveu — não mostra spinner
+          if (mountedRef.current) {
+            setPosts(parsed)
+            setLoading(false) // cache já resolveu — não mostra spinner
+          }
+          loadedFromCache = true
         } else {
-          setLoading(true)
+          if (mountedRef.current) setLoading(true)
         }
       } else {
-        setLoading(true)
+        if (mountedRef.current) setLoading(true)
       }
-    } catch { setLoading(true) }
+    } catch { if (mountedRef.current) setLoading(true) }
 
     // ── Passo 2: atualizar com dado fresco do banco ──
     try {
       const { data, error } = await getCommunityPosts(50)
       if (error) throw error
-      if (data) {
+      if (data && mountedRef.current) {
         const all = data as CommunityPost[]
         const visiveis = isAdmin ? all : all.filter(p => !p.oculto)
         visiveis.sort((a, b) => {
@@ -276,10 +302,11 @@ export default function Community() {
         try { localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(visiveis)) } catch { /* ignora */ }
       }
     } catch {
-      // Se falhou mas temos cache, o usuário já está vendo posts — não mostra erro
-      if (posts.length === 0) setErroPosts(true)
+      // Só mostra erro se não há cache — evita stale closure com `posts.length`
+      if (mountedRef.current && !loadedFromCache) setErroPosts(true)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
+      fetchingRef.current['posts'] = false
     }
   }
 
@@ -295,24 +322,31 @@ export default function Community() {
       texto: newText.trim(),
       foto_url: postFotoUrl || undefined,
     })
+    if (!mountedRef.current) return
     setNewText('')
     setPostFotoUrl('')
     setShowNewPost(false)
     setPosting(false)
+    // Força nova busca ignorando dedup
+    fetchingRef.current['posts'] = false
     await loadPosts()
   }
 
   const handlePinar = async (post: CommunityPost) => {
     setModerando(post.id)
     await moderarPost(post.id, { pinado: !post.pinado })
+    if (!mountedRef.current) return
     setModerando(null)
+    fetchingRef.current['posts'] = false
     await loadPosts()
   }
 
   const handleOcultar = async (post: CommunityPost) => {
     setModerando(post.id)
     await moderarPost(post.id, { oculto: !post.oculto })
+    if (!mountedRef.current) return
     setModerando(null)
+    fetchingRef.current['posts'] = false
     await loadPosts()
   }
 
@@ -320,7 +354,9 @@ export default function Community() {
     if (!confirm(`Excluir post de ${post.autor_nome}?`)) return
     setModerando(post.id)
     await deleteCommunityPost(post.id)
+    if (!mountedRef.current) return
     setModerando(null)
+    fetchingRef.current['posts'] = false
     await loadPosts()
   }
 
