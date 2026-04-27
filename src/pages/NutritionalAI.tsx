@@ -5,9 +5,8 @@ import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
 import {
   Camera, Upload, Loader2, Utensils, Plus,
-  TrendingUp, X, Sparkles, ChevronDown, ChevronUp,
-  AlertCircle, Leaf, ChefHat, Clock, CheckCircle2,
-  Apple, Flame, Zap, Target
+  TrendingUp, X, Sparkles, AlertCircle, Leaf,
+  CheckCircle2, Target, ChevronDown, ChevronUp
 } from 'lucide-react'
 
 // ── IA Nutricional Menovitta (Gemini) ─────────────────────────────────────────
@@ -28,35 +27,6 @@ interface AnaliseResultado {
   alimentos_detectados: string[]
   confianca: number
   dica_menopausa: string
-}
-
-interface Sugestao {
-  nome: string
-  descricao: string
-  calorias: number
-  proteinas: number
-  gorduras: number
-  carboidratos: number
-  tempo_preparo: string
-  ingredientes: string[]
-  modo_preparo: string[]
-  imagem_termo: string
-}
-
-type HorarioRefeicao = 'cafe_manha' | 'almoco' | 'cafe_tarde' | 'jantar'
-
-const HORARIO_LABELS: Record<HorarioRefeicao, string> = {
-  cafe_manha: '☀️ Café da Manhã',
-  almoco:     '🌤 Almoço',
-  cafe_tarde: '🌥 Café da Tarde',
-  jantar:     '🌙 Jantar',
-}
-
-const HORARIO_CONTEXTO: Record<HorarioRefeicao, string> = {
-  cafe_manha: 'café da manhã (6h–9h): refeição energizante, proteica, com carboidratos complexos para dar energia e começar o metabolismo',
-  almoco:     'almoço (12h–14h): refeição principal do dia, equilibrada em proteínas, carboidratos, vegetais e gorduras boas',
-  cafe_tarde: 'café da tarde / lanche (15h–17h): refeição leve mas nutritiva, ideal também para pré-treino',
-  jantar:     'jantar (19h–21h): refeição mais leve, rica em proteínas e vegetais, com poucos carboidratos para não prejudicar o sono',
 }
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
@@ -117,83 +87,12 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   throw new Error('Falha após 3 tentativas')
 }
 
-// ── Sugestão de refeição (1 receita por horário) ────────────────────────────
-async function gerarReceitasIA(
-  horario: HorarioRefeicao, faseMenopausa: string
-): Promise<Sugestao[]> {
-  const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
-  const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${faseMenopausa}).
-Gere EXATAMENTE 1 receita saudável e saborosa para o ${HORARIO_CONTEXTO[horario]}.
-
-Regras:
-- Ingredientes acessíveis no Brasil
-- Máximo 20 minutos de preparo
-- Priorize proteínas e alimentos anti-inflamatórios
-
-Retorne APENAS um array JSON válido com 1 objeto (sem markdown, sem \`\`\`json):
-[
-  {
-    "nome": "Nome apetitoso",
-    "descricao": "Descrição curta em 1 frase saborosa",
-    "calorias": <inteiro>,
-    "proteinas": <decimal 1 casa>,
-    "gorduras": <decimal 1 casa>,
-    "carboidratos": <decimal 1 casa>,
-    "tempo_preparo": "X min",
-    "ingredientes": ["qtd + ingrediente", "..."],
-    "modo_preparo": ["Passo 1.", "Passo 2.", "Passo 3."],
-    "imagem_termo": "food search term in English for Unsplash"
-  }
-]`
-
-  const delays = [0, 3000, 8000]
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
-    try {
-      const result = await model.generateContent(prompt)
-      const text = result.response.text().trim()
-      const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
-      const arr = JSON.parse(clean)
-      if (!Array.isArray(arr) || arr.length === 0) throw new Error('Expected array')
-      return arr as Sugestao[]
-    } catch (err) {
-      if (attempt === 2) throw err
-    }
-  }
-  throw new Error('Falha após 3 tentativas')
-}
-
 // ── Helper: cor da barra de progresso ────────────────────────────────────────
 function barColor(pct: number) {
   if (pct >= 100) return 'bg-red-400'
   if (pct >= 85)  return 'bg-orange-400'
   if (pct >= 50)  return 'bg-rosa-400'
   return 'bg-green-400'
-}
-
-// ── Imagem de comida via Unsplash (curadoria por categoria) ──────────────────
-const FOOD_IMGS: Record<string, string> = {
-  default:   'photo-1490645935967-10de6ba17061',
-  salad:     'photo-1512621776951-a57141f2eefd',
-  salmon:    'photo-1467003909585-2f8a72700288',
-  chicken:   'photo-1598103442097-8b74394b95c3',
-  egg:       'photo-1525351484163-7529414344d8',
-  soup:      'photo-1547592166-23ac45744acd',
-  smoothie:  'photo-1553530666-ba11a90bb0ae',
-  bowl:      'photo-1540189549336-e6e99c3679fe',
-  protein:   'photo-1490645935967-10de6ba17061',
-  pasta:     'photo-1473093295043-cdd812d0e601',
-  rice:      'photo-1536304929831-ee1ca9d44906',
-  fruit:     'photo-1519996529931-28324d5a630e',
-  yogurt:    'photo-1488477181946-6428a0291777',
-}
-
-function foodImageUrl(termo: string) {
-  const lower = termo.toLowerCase()
-  const key = Object.keys(FOOD_IMGS).find(k => lower.includes(k)) || 'default'
-  return `https://images.unsplash.com/${FOOD_IMGS[key]}?auto=format&fit=crop&w=400&q=80`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,16 +116,6 @@ export default function NutritionalAI() {
   const [todayLogs,  setTodayLogs]  = useState<FoodLog[]>([])
   const [plano,      setPlano]      = useState<PlanoAcao | null>(null)
   const [showHistory, setShowHistory] = useState(false)
-
-  // Sugestão IA
-  const [sugestoes,        setSugestoes]        = useState<Sugestao[]>([])
-  const [loadingSugestao,  setLoadingSugestao]  = useState(false)
-  const [sugestaoError,    setSugestaoError]    = useState<string | null>(null)
-  const [horarioRefeicao,  setHorarioRefeicao]  = useState<HorarioRefeicao>('almoco')
-  const [receitaAberta,    setReceitaAberta]    = useState<number | null>(null)
-
-  // Tabs
-  const [tab, setTab] = useState<'scanner' | 'sugestoes'>('scanner')
 
   useEffect(() => {
     let mounted = true
@@ -334,38 +223,6 @@ export default function NutritionalAI() {
     setImagePreview(null); setImageFile(null); setResultado(null); setSaved(false); setScanError(null)
   }
 
-  // ── Sugestão handler ─────────────────────────────────────────────────────────
-  const handleGerarSugestao = async () => {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-      setSugestaoError('Chave da IA não configurada. Adicione VITE_GEMINI_API_KEY no Vercel.')
-      return
-    }
-    setLoadingSugestao(true)
-    setSugestaoError(null)
-    setSugestoes([])
-    setReceitaAberta(null)
-    try {
-      const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
-      const arr = await gerarReceitasIA(horarioRefeicao, fase)
-      setSugestoes(arr)
-      setReceitaAberta(0) // Abre a primeira receita automaticamente
-    } catch (err: unknown) {
-      console.error('IA Nutricional error:', err)
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_GEMINI_API_KEY')) {
-        setSugestaoError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY.')
-      } else if (msg.includes('401') || msg.includes('API key') || msg.includes('API_KEY_INVALID')) {
-        setSugestaoError('Chave da IA inválida. Verifique no Vercel → Environment Variables.')
-      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-        setSugestaoError('Limite atingido. Aguarde alguns minutos.')
-      } else {
-        setSugestaoError(`Erro: ${msg.slice(0, 80)}. Tente novamente.`)
-      }
-    } finally {
-      setLoadingSugestao(false)
-    }
-  }
-
   const pct = (v: number, total: number) => Math.min(100, Math.round((v / total) * 100))
 
   // ── MACROS DO DIA (usados em ambas as abas) ──────────────────────────────────
@@ -439,34 +296,18 @@ export default function NutritionalAI() {
             {consumido.calorias === 0
               ? `Comece registrando suas refeições. Sua meta é ${meta.calorias} kcal com ${meta.proteinas}g de proteína.`
               : faltam.calorias > 0
-                ? `Faltam ${Math.round(faltam.calorias)} kcal e ${Math.round(faltam.proteinas)}g de proteína. Veja as sugestões abaixo!`
-                : 'Parabéns! Você atingiu sua meta calórica hoje. Priorize proteína nas próximas refeições.'}
+                ? `Faltam ${Math.round(faltam.calorias)} kcal e ${Math.round(faltam.proteinas)}g de proteína para atingir sua meta de hoje.`
+                : consumido.calorias > meta.calorias
+                  ? `Você ultrapassou ${Math.round(consumido.calorias - meta.calorias)} kcal da sua meta hoje. Prefira refeições mais leves nas próximas.`
+                  : 'Parabéns! Você atingiu sua meta calórica hoje. Priorize proteína nas próximas refeições.'}
           </p>
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="flex gap-2 mb-4">
-        {[
-          { key: 'scanner'  as const, label: 'Scanner', icon: <Camera size={18} /> },
-          { key: 'sugestoes' as const, label: 'Sugestões', icon: <ChefHat size={18} /> },
-        ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all active:translate-y-1 active:shadow-none ${
-              tab === t.key
-                ? 'bg-white text-rosa-500 border border-rosa-100'
-                : 'bg-gray-100 text-gray-400'
-            }`}
-            style={tab === t.key ? { boxShadow: '0 4px 0 #e2b8bf, 0 6px 12px rgba(0,0,0,0.08)' } : {}}>
-            {t.icon} {t.label}
-          </button>
-        ))}
-      </div>
-
       {/* ══════════════════════════════════════════════════
-          ABA SCANNER
+          SCANNER DE PRATOS
       ══════════════════════════════════════════════════ */}
-      {tab === 'scanner' && (
+      <div>
         <div className="card mb-4">
           <input ref={fileInputRef}    type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
           <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
@@ -604,182 +445,38 @@ export default function NutritionalAI() {
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* ══════════════════════════════════════════════════
-          ABA SUGESTÕES
-      ══════════════════════════════════════════════════ */}
-      {tab === 'sugestoes' && (
-        <div className="space-y-4">
-
-          {/* Card: gerar receitas */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-3">
-              <ChefHat size={16} className="text-rosa-500" />
-              <h3 className="font-semibold text-gray-800 text-sm">Receitas por Horário</h3>
-              <span className="ml-auto text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-semibold">IA Menovitta</span>
+      {/* ── Resumo de Macros: faltam ou ultrapassou ── */}
+      <div className="card py-3 mb-4">
+        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
+          <Target size={12} className="text-rosa-400" />
+          {consumido.calorias > meta.calorias
+            ? 'Você ultrapassou hoje:'
+            : 'Ainda faltam hoje:'}
+        </p>
+        <div className="flex gap-2">
+          {(consumido.calorias > meta.calorias
+            ? [
+                { label: 'kcal', val: consumido.calorias - meta.calorias,     cor: 'text-red-500 bg-red-50' },
+                { label: 'prot', val: Math.max(0, consumido.proteinas - meta.proteinas),    cor: 'text-red-500 bg-red-50' },
+                { label: 'carb', val: Math.max(0, consumido.carboidratos - meta.carboidratos), cor: 'text-red-500 bg-red-50' },
+                { label: 'gord', val: Math.max(0, consumido.gorduras - meta.gorduras),     cor: 'text-red-500 bg-red-50' },
+              ]
+            : [
+                { label: 'kcal', val: faltam.calorias,     cor: 'text-orange-500 bg-orange-50' },
+                { label: 'prot', val: faltam.proteinas,    cor: 'text-red-500 bg-red-50' },
+                { label: 'carb', val: faltam.carboidratos, cor: 'text-blue-500 bg-blue-50' },
+                { label: 'gord', val: faltam.gorduras,     cor: 'text-yellow-600 bg-yellow-50' },
+              ]
+          ).map((m, i) => (
+            <div key={i} className={`flex-1 rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
+              <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(m.val)}</p>
+              <p className="text-[9px] text-gray-400">{m.label}</p>
             </div>
-
-            {/* Seletor de horário */}
-            <p className="text-xs text-gray-500 mb-2">Qual é a próxima refeição?</p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {(Object.keys(HORARIO_LABELS) as HorarioRefeicao[]).map(h => (
-                <button
-                  key={h}
-                  onClick={() => { setHorarioRefeicao(h); setSugestoes([]); setReceitaAberta(null) }}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-left ${
-                    horarioRefeicao === h
-                      ? 'bg-rosa-500 text-white shadow-sm'
-                      : 'bg-gray-50 text-gray-600 border border-gray-100'
-                  }`}
-                >
-                  {HORARIO_LABELS[h]}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleGerarSugestao}
-              disabled={loadingSugestao}
-              className="btn-gold w-full flex items-center justify-center gap-2"
-            >
-              {loadingSugestao
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando receita com IA...</>
-                : <><Sparkles size={18} /> {sugestoes.length > 0 ? 'Gerar nova receita' : `Gerar receita — ${HORARIO_LABELS[horarioRefeicao]}`}</>
-              }
-            </button>
-
-            {sugestaoError && (
-              <div className="flex items-start gap-2 bg-red-50 text-red-600 text-xs px-3 py-2.5 rounded-xl mt-3">
-                <AlertCircle size={14} className="mt-0.5 shrink-0" /> {sugestaoError}
-              </div>
-            )}
-          </div>
-
-          {/* Metas do dia (compacto) */}
-          {faltam.calorias > 0 && (
-            <div className="card py-3">
-              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
-                <Target size={12} className="text-rosa-400" /> Ainda faltam hoje:
-              </p>
-              <div className="flex gap-2">
-                {[
-                  { label: 'kcal', val: faltam.calorias, cor: 'text-orange-500 bg-orange-50' },
-                  { label: 'prot', val: faltam.proteinas, cor: 'text-red-500 bg-red-50' },
-                  { label: 'carb', val: faltam.carboidratos, cor: 'text-blue-500 bg-blue-50' },
-                  { label: 'gord', val: faltam.gorduras, cor: 'text-yellow-600 bg-yellow-50' },
-                ].map((m, i) => (
-                  <div key={i} className={`flex-1 rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
-                    <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(m.val)}</p>
-                    <p className="text-[9px] text-gray-400">{m.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 3 Receitas geradas pela IA */}
-          {sugestoes.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 mb-2 text-center">
-                3 opções para {HORARIO_LABELS[horarioRefeicao]}
-              </p>
-              {sugestoes.map((s, idx) => (
-                <div key={idx} className="card overflow-hidden p-0 mb-4">
-                  {/* Foto + header */}
-                  <div className="relative h-40 overflow-hidden">
-                    <img
-                      src={foodImageUrl(s.imagem_termo)}
-                      alt={s.nome}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'
-                      }}
-                    />
-                    <div className="absolute inset-0 flex flex-col justify-end p-4"
-                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0) 55%)' }}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] bg-ouro-400 text-white px-2 py-0.5 rounded-full font-bold">
-                          Opção {idx + 1}
-                        </span>
-                        <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Clock size={10} /> {s.tempo_preparo}
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-white text-base">{s.nome}</h3>
-                      <p className="text-white/80 text-xs">{s.descricao}</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    {/* Macros */}
-                    <div className="grid grid-cols-4 gap-1.5 mb-3">
-                      {[
-                        { label: 'Kcal', val: s.calorias,     cor: 'text-orange-500 bg-orange-50', unit: '' },
-                        { label: 'Prot', val: s.proteinas,    cor: 'text-red-500 bg-red-50',       unit: 'g' },
-                        { label: 'Gord', val: s.gorduras,     cor: 'text-yellow-600 bg-yellow-50', unit: 'g' },
-                        { label: 'Carb', val: s.carboidratos, cor: 'text-blue-500 bg-blue-50',     unit: 'g' },
-                      ].map((m, j) => (
-                        <div key={j} className={`rounded-xl p-2 text-center ${m.cor.split(' ')[1]}`}>
-                          <p className={`text-sm font-bold ${m.cor.split(' ')[0]}`}>{Math.round(Number(m.val))}{m.unit}</p>
-                          <p className="text-[9px] text-gray-400">{m.label}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Toggle receita */}
-                    <button
-                      onClick={() => setReceitaAberta(receitaAberta === idx ? null : idx)}
-                      className="w-full flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Utensils size={12} className="text-rosa-400" />
-                        Ver receita completa
-                      </span>
-                      {receitaAberta === idx
-                        ? <ChevronUp size={14} className="text-gray-400" />
-                        : <ChevronDown size={14} className="text-gray-400" />}
-                    </button>
-
-                    {receitaAberta === idx && (
-                      <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
-                        {/* Ingredientes */}
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                            <Leaf size={12} className="text-green-500" /> Ingredientes
-                          </p>
-                          <ul className="space-y-1">
-                            {s.ingredientes.map((ing, j) => (
-                              <li key={j} className="text-xs text-gray-600 flex items-start gap-2">
-                                <span className="text-rosa-400 mt-0.5 shrink-0">•</span> {ing}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        {/* Modo de preparo */}
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                            <ChefHat size={12} className="text-rosa-400" /> Modo de Preparo
-                          </p>
-                          <ol className="space-y-2">
-                            {s.modo_preparo.map((passo, j) => (
-                              <li key={j} className="flex items-start gap-2">
-                                <span className="w-5 h-5 rounded-full bg-rosa-100 text-rosa-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{j + 1}</span>
-                                <p className="text-xs text-gray-600 leading-relaxed">{passo}</p>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
-      )}
+      </div>
 
       {/* ── Orientações Nutricionais da Fase ── */}
       {(() => {
