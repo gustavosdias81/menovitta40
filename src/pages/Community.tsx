@@ -229,28 +229,82 @@ export default function Community() {
     if (activeTab === 'ranking') loadRanking()
   }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const RANKING_CACHE_KEY = 'menovitta_community_ranking'
+
   const loadRanking = async () => {
     if (fetchingRef.current['ranking']) return
     fetchingRef.current['ranking'] = true
-    setLoadingRanking(true)
+
+    let carregouDoCache = false
+
+    // ── Passo 1: mostrar cache imediatamente ──
+    try {
+      const cached = localStorage.getItem(RANKING_CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached) as RankingEntry[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (mountedRef.current) {
+            setRanking(parsed)
+            setLoadingRanking(false)
+          }
+          carregouDoCache = true
+        } else {
+          if (mountedRef.current) setLoadingRanking(true)
+        }
+      } else {
+        if (mountedRef.current) setLoadingRanking(true)
+      }
+    } catch { if (mountedRef.current) setLoadingRanking(true) }
+
+    // ── Passo 2: atualizar com dado fresco ──
     try {
       const { data } = await getRankingMensal(10)
-      if (mountedRef.current && data) setRanking(data)
-    } catch { /* silencia */ }
+      if (data && mountedRef.current) {
+        setRanking(data)
+        try { localStorage.setItem(RANKING_CACHE_KEY, JSON.stringify(data)) } catch { /* ignora */ }
+      }
+    } catch { /* silencia — usa cache se disponível */ }
     finally {
       if (mountedRef.current) setLoadingRanking(false)
       fetchingRef.current['ranking'] = false
     }
   }
 
+  const ARTIGOS_CACHE_KEY = 'menovitta_community_artigos'
+
   const loadArtigos = async () => {
     if (fetchingRef.current['artigos']) return
     fetchingRef.current['artigos'] = true
-    setLoadingArtigos(true)
+
+    let carregouDoCache = false
+
+    // ── Passo 1: mostrar cache imediatamente ──
+    try {
+      const cached = localStorage.getItem(ARTIGOS_CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached) as Artigo[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (mountedRef.current) {
+            setArtigos(parsed)
+            setLoadingArtigos(false)
+          }
+          carregouDoCache = true
+        } else {
+          if (mountedRef.current) setLoadingArtigos(true)
+        }
+      } else {
+        if (mountedRef.current) setLoadingArtigos(true)
+      }
+    } catch { if (mountedRef.current) setLoadingArtigos(true) }
+
+    // ── Passo 2: atualizar com dado fresco ──
     try {
       const { data } = await getArtigos(true)
-      if (mountedRef.current && data) setArtigos(data as Artigo[])
-    } catch { /* silencia */ }
+      if (data && mountedRef.current) {
+        setArtigos(data as Artigo[])
+        try { localStorage.setItem(ARTIGOS_CACHE_KEY, JSON.stringify(data)) } catch { /* ignora */ }
+      }
+    } catch { /* silencia — usa cache se disponível */ }
     finally {
       if (mountedRef.current) setLoadingArtigos(false)
       fetchingRef.current['artigos'] = false
@@ -301,7 +355,17 @@ export default function Community() {
         setPosts(visiveis)
         try { localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(visiveis)) } catch { /* ignora */ }
       }
-    } catch {
+    } catch (err) {
+      // Detecta tipo de erro e loga
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          console.warn('Community feed timeout (10s) — usando cache')
+        } else if (err.message.includes('Failed to fetch')) {
+          console.warn('Community feed network error — usando cache')
+        } else {
+          console.error('Community feed error:', err.message)
+        }
+      }
       // Só mostra erro se não há cache — evita stale closure com `posts.length`
       if (mountedRef.current && !loadedFromCache) setErroPosts(true)
     } finally {
@@ -592,9 +656,9 @@ export default function Community() {
             </div>
           ) : erroPosts ? (
             <div className="text-center py-16">
-              <p className="text-3xl mb-3">📡</p>
-              <h3 className="font-semibold text-gray-500 mb-1">Servidor lento para responder</h3>
-              <p className="text-sm text-gray-400 mb-4">Pode ser o banco acordando. Tente novamente.</p>
+              <p className="text-3xl mb-3">⏳</p>
+              <h3 className="font-semibold text-gray-600 mb-1">Rede ocupada</h3>
+              <p className="text-sm text-gray-500 mb-4">Mostrando dados salvos. Tentando carregar novos dados...</p>
               <button
                 onClick={loadPosts}
                 className="flex items-center gap-2 mx-auto text-rosa-500 text-sm font-semibold bg-rosa-50 px-5 py-2.5 rounded-xl active:scale-95 transition-transform"

@@ -525,10 +525,17 @@ export default function Quiz() {
             <div>
               <label className="label-field">Selecione os sintomas que você sente:</label>
               <p className="text-xs text-gray-400 mb-3">Pode selecionar vários</p>
-              <div className="space-y-2 max-h-[42vh] overflow-y-auto pr-1">
-                {SINTOMAS_OPTIONS.map(s => (
-                  <Checkbox key={s} label={s} checked={sintomas.includes(s)} onClick={() => toggleItem(sintomas, s, setSintomas)} />
-                ))}
+              <div className="relative">
+                <div className="space-y-2 max-h-[42vh] overflow-y-auto pr-1 scroll-smooth">
+                  {SINTOMAS_OPTIONS.map(s => (
+                    <Checkbox key={s} label={s} checked={sintomas.includes(s)} onClick={() => toggleItem(sintomas, s, setSintomas)} />
+                  ))}
+                </div>
+                {SINTOMAS_OPTIONS.length > 6 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-2">
+                    <p className="text-xs text-rosa-500 font-medium animate-bounce">▼ Role para ver mais</p>
+                  </div>
+                )}
               </div>
             </div>
             {sintomas.length > 0 && (
@@ -552,10 +559,17 @@ export default function Quiz() {
           <div className="space-y-5">
             <div>
               <label className="label-field">Condições de saúde diagnosticadas:</label>
-              <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1">
-                {DOENCAS_OPTIONS.map(d => (
-                  <Checkbox key={d} label={d} checked={doencas.includes(d)} onClick={() => toggleItem(doencas, d, setDoencas)} />
-                ))}
+              <div className="relative">
+                <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1 scroll-smooth">
+                  {DOENCAS_OPTIONS.map(d => (
+                    <Checkbox key={d} label={d} checked={doencas.includes(d)} onClick={() => toggleItem(doencas, d, setDoencas)} />
+                  ))}
+                </div>
+                {DOENCAS_OPTIONS.length > 5 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-1">
+                    <p className="text-xs text-rosa-500 font-medium animate-bounce">▼</p>
+                  </div>
+                )}
               </div>
             </div>
             <div>
@@ -568,10 +582,17 @@ export default function Quiz() {
             </div>
             <div>
               <label className="label-field">Medicamentos em uso:</label>
-              <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1">
-                {MEDICAMENTOS_OPTIONS.map(m => (
-                  <Checkbox key={m} label={m} checked={medicamentos.includes(m)} onClick={() => toggleItem(medicamentos, m, setMedicamentos)} />
-                ))}
+              <div className="relative">
+                <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1 scroll-smooth">
+                  {MEDICAMENTOS_OPTIONS.map(m => (
+                    <Checkbox key={m} label={m} checked={medicamentos.includes(m)} onClick={() => toggleItem(medicamentos, m, setMedicamentos)} />
+                  ))}
+                </div>
+                {MEDICAMENTOS_OPTIONS.length > 5 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-1">
+                    <p className="text-xs text-rosa-500 font-medium animate-bounce">▼</p>
+                  </div>
+                )}
               </div>
             </div>
             <div>

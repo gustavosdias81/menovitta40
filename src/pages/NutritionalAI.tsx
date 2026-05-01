@@ -6,7 +6,7 @@ import type { FoodLog, PlanoAcao } from '../types'
 import {
   Camera, Upload, Loader2, Utensils, Plus,
   TrendingUp, X, Sparkles, AlertCircle, Leaf,
-  CheckCircle2, Target, ChevronDown, ChevronUp
+  CheckCircle2, Target, ChevronDown, ChevronUp, ChevronRight, Zap
 } from 'lucide-react'
 
 // ── IA Nutricional Menovitta (Gemini) ─────────────────────────────────────────
@@ -27,6 +27,127 @@ interface AnaliseResultado {
   alimentos_detectados: string[]
   confianca: number
   dica_menopausa: string
+}
+
+interface Receita {
+  nome: string
+  descricao: string
+  tempo_preparo: string
+  calorias: number
+  proteinas: number
+  gorduras: number
+  carboidratos: number
+  ingredientes: string[]
+  modo_preparo: string[]
+  imagem_termo: string
+}
+
+// ── Constantes para Receitas IA ────────────────────────────────────────────────
+type HorarioRefeicao = 'cafe' | 'almoco' | 'tarde' | 'jantar'
+
+const HORARIO_LABELS: Record<HorarioRefeicao, string> = {
+  cafe: 'Café da Manhã',
+  almoco: 'Almoço',
+  tarde: 'Café da Tarde',
+  jantar: 'Jantar',
+}
+
+const HORARIO_EMOJI: Record<HorarioRefeicao, string> = {
+  cafe: '☀️',
+  almoco: '🌤️',
+  tarde: '🌥️',
+  jantar: '🌙',
+}
+
+const HORARIO_CONTEXTO: Record<HorarioRefeicao, string> = {
+  cafe: 'café da manhã energético com alta proteína para começar o dia',
+  almoco: 'almoço balanceado com proteína de qualidade e vegetais',
+  tarde: 'café da tarde com proteína para manter energia e saciedade',
+  jantar: 'jantar leve mas protéico para boa recuperação noturna',
+}
+
+// ── Mapeamento de Imagens Unsplash ────────────────────────────────────────────
+const FOOD_IMAGES: Record<string, string> = {
+  'egg': 'photo-1525351484163-7529414344d8',
+  'omelet': 'photo-1525351484163-7529414344d8',
+  'smoothie': 'photo-1553530666-ba11a90bb0ae',
+  'acai': 'photo-1553530666-ba11a90bb0ae',
+  'yogurt': 'photo-1488477181946-6428a0291777',
+  'granola': 'photo-1488477181946-6428a0291777',
+  'salmon': 'photo-1467003909585-2f8a72700288',
+  'fish': 'photo-1467003909585-2f8a72700288',
+  'chicken': 'photo-1598103442097-8b74394b95c3',
+  'meat': 'photo-1598103442097-8b74394b95c3',
+  'salad': 'photo-1512621776951-a57141f2eefd',
+  'lettuce': 'photo-1512621776951-a57141f2eefd',
+  'soup': 'photo-1547592166-23ac45744acd',
+  'broth': 'photo-1547592166-23ac45744acd',
+  'rice': 'photo-1536304929831-ee1ca9d44906',
+  'quinoa': 'photo-1512621776951-a57141f2eefd',
+  'pasta': 'photo-1473093295043-cdd812d0e601',
+  'noodle': 'photo-1473093295043-cdd812d0e601',
+  'bowl': 'photo-1540189549336-e6e99c3679fe',
+  'protein': 'photo-1490645935967-10de6ba17061',
+  'vegetables': 'photo-1512621776951-a57141f2eefd',
+  'fruit': 'photo-1519996529931-28324d5a630e',
+  'bread': 'photo-1509042239860-f550ce710b93',
+  'cheese': 'photo-1618164436241-4473940571ce',
+  'butter': 'photo-1589985643862-19e6550a5b5b',
+  'default': 'photo-1490645935967-10de6ba17061',
+}
+
+function getUnsplashUrl(termo: string): string {
+  const lower = termo.toLowerCase()
+  let key = 'default'
+  for (const k of Object.keys(FOOD_IMAGES)) {
+    if (lower.includes(k)) {
+      key = k
+      break
+    }
+  }
+  const photoId = FOOD_IMAGES[key]
+  return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=400&q=80`
+}
+
+// ── Geração de Receitas IA ────────────────────────────────────────────────────
+async function gerarReceitaIA(horario: HorarioRefeicao, fase: string): Promise<Receita> {
+  const genai = getGemini()
+  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+
+  const contexto = HORARIO_CONTEXTO[horario]
+  const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${fase}).
+
+Gere EXATAMENTE 1 receita saudável para ${contexto}.
+
+Priorize:
+- Alta proteína (para recomposição muscular)
+- Alimentos anti-inflamatórios
+- Máximo 20 minutos de preparo
+- Ingredientes acessíveis no Brasil
+
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json) com este formato exato:
+{
+  "nome": "Nome da receita",
+  "descricao": "Uma frase descrevendo a receita",
+  "tempo_preparo": "15 min",
+  "calorias": 320,
+  "proteinas": 25,
+  "gorduras": 12,
+  "carboidratos": 18,
+  "ingredientes": ["Ingrediente 1", "Ingrediente 2", "..."],
+  "modo_preparo": ["Passo 1", "Passo 2", "..."],
+  "imagem_termo": "termo em inglês para buscar imagem (ex: omelet, salmon, salad)"
+}`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const text = result.response.text().trim()
+    const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+    return JSON.parse(clean) as Receita
+  } catch (err) {
+    console.error('Erro ao gerar receita:', err)
+    throw new Error('Falha ao gerar receita com IA')
+  }
 }
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
@@ -117,13 +238,99 @@ export default function NutritionalAI() {
   const [plano,      setPlano]      = useState<PlanoAcao | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
+  // Receitas IA
+  const [receitas, setReceitas] = useState<Record<HorarioRefeicao, Receita | null>>({
+    cafe: null,
+    almoco: null,
+    tarde: null,
+    jantar: null,
+  })
+  const [horarioSelecionado, setHorarioSelecionado] = useState<HorarioRefeicao>('almoco')
+  const [loadingReceita, setLoadingReceita] = useState(false)
+  const [expandedIngredientes, setExpandedIngredientes] = useState<Record<HorarioRefeicao, boolean>>({
+    cafe: false,
+    almoco: false,
+    tarde: false,
+    jantar: false,
+  })
+  const [expandedPreparo, setExpandedPreparo] = useState<Record<HorarioRefeicao, boolean>>({
+    cafe: false,
+    almoco: false,
+    tarde: false,
+    jantar: false,
+  })
+  const [receitaError, setReceitaError] = useState<string | null>(null)
+
   useEffect(() => {
     let mounted = true
     if (user) {
       loadTodayData(mounted)
+      loadReceitasFromCache()
     }
     return () => { mounted = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const RECEITAS_CACHE_KEY = `menovitta_receitas_${user?.id}_${new Date().toISOString().split('T')[0]}`
+
+  const loadReceitasFromCache = () => {
+    try {
+      const cached = localStorage.getItem(RECEITAS_CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        setReceitas(parsed)
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar cache de receitas:', err)
+    }
+  }
+
+  const saveReceitasToCache = (r: Record<HorarioRefeicao, Receita | null>) => {
+    try {
+      localStorage.setItem(RECEITAS_CACHE_KEY, JSON.stringify(r))
+    } catch (err) {
+      console.warn('Erro ao salvar cache de receitas:', err)
+    }
+  }
+
+  const handleGerarReceita = async () => {
+    if (!profile) return
+    setLoadingReceita(true)
+    setReceitaError(null)
+    try {
+      const fase = (profile as { fase_menopausa?: string })?.fase_menopausa || 'menopausa'
+      const novaReceita = await gerarReceitaIA(horarioSelecionado, fase)
+      const updated = { ...receitas, [horarioSelecionado]: novaReceita }
+      setReceitas(updated)
+      saveReceitasToCache(updated)
+    } catch (err) {
+      console.error('Erro ao gerar receita:', err)
+      setReceitaError(err instanceof Error ? err.message : 'Erro ao gerar receita')
+    } finally {
+      setLoadingReceita(false)
+    }
+  }
+
+  const handleSalvarReceita = async () => {
+    const receita = receitas[horarioSelecionado]
+    if (!user || !receita) return
+
+    try {
+      await saveFoodLog({
+        user_id: user.id,
+        descricao: receita.nome,
+        calorias: receita.calorias,
+        proteinas: receita.proteinas,
+        gorduras: receita.gorduras,
+        carboidratos: receita.carboidratos,
+        refeicao: horarioSelecionado === 'cafe' ? 'cafe_manha' : horarioSelecionado === 'almoco' ? 'almoco' : horarioSelecionado === 'tarde' ? 'lanche' : 'jantar',
+        data: new Date().toISOString().split('T')[0],
+      })
+      await loadTodayData()
+    } catch (err) {
+      console.error('Erro ao salvar receita:', err)
+      setReceitaError('Erro ao salvar receita')
+    }
+  }
 
   const loadTodayData = async (mounted = true) => {
     if (!user) return
@@ -445,6 +652,174 @@ export default function NutritionalAI() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════
+          RECEITAS IA PERSONALIZADAS
+      ══════════════════════════════════════════════════ */}
+      <div className="card mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles size={18} className="text-rosa-500" />
+          <h2 className="font-semibold text-gray-800">Receitas do Dia</h2>
+          <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-medium">IA</span>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">1 receita por refeição, gerada especialmente para você</p>
+
+        {/* Tabs para horários */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {(Object.entries(HORARIO_LABELS) as [HorarioRefeicao, string][]).map(([hora, label]) => (
+            <button
+              key={hora}
+              onClick={() => setHorarioSelecionado(hora)}
+              className={`flex items-center gap-1 px-3 py-2 rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
+                horarioSelecionado === hora
+                  ? 'bg-rosa-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <span>{HORARIO_EMOJI[hora]}</span>
+              <span className="text-sm font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Erro */}
+        {receitaError && (
+          <div className="flex items-start gap-2 bg-red-50 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-3">
+            <AlertCircle size={14} className="mt-0.5 shrink-0" /> {receitaError}
+          </div>
+        )}
+
+        {/* Receita ou botão para gerar */}
+        {!receitas[horarioSelecionado] ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-3 bg-rosa-50 rounded-full flex items-center justify-center">
+              <Zap size={28} className="text-rosa-500" />
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Clique para gerar uma receita personalizada</p>
+            <button
+              onClick={handleGerarReceita}
+              disabled={loadingReceita}
+              className="btn-gold w-full flex items-center justify-center gap-2"
+            >
+              {loadingReceita ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Gerando receita...</>
+              ) : (
+                <><Sparkles size={18} /> Gerar Receita</>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Header da receita */}
+            <div className="bg-green-50 rounded-2xl p-4">
+              <h3 className="font-semibold text-green-800 text-base mb-1">{receitas[horarioSelecionado].nome}</h3>
+              <p className="text-xs text-green-700">{receitas[horarioSelecionado].descricao}</p>
+            </div>
+
+            {/* Imagem */}
+            <img
+              src={getUnsplashUrl(receitas[horarioSelecionado].imagem_termo)}
+              alt={receitas[horarioSelecionado].nome}
+              className="w-full h-40 object-cover rounded-2xl"
+            />
+
+            {/* Tempo de preparo */}
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="text-lg">⏱️</span>
+              <span>{receitas[horarioSelecionado].tempo_preparo}</span>
+            </div>
+
+            {/* Macros */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Calorias', val: receitas[horarioSelecionado].calorias, unit: '', bg: 'bg-orange-50', cor: 'text-orange-500' },
+                { label: 'Proteínas', val: receitas[horarioSelecionado].proteinas, unit: 'g', bg: 'bg-red-50', cor: 'text-red-500' },
+                { label: 'Gorduras', val: receitas[horarioSelecionado].gorduras, unit: 'g', bg: 'bg-yellow-50', cor: 'text-yellow-600' },
+                { label: 'Carbos', val: receitas[horarioSelecionado].carboidratos, unit: 'g', bg: 'bg-blue-50', cor: 'text-blue-500' },
+              ].map((m, i) => (
+                <div key={i} className={`${m.bg} rounded-xl p-3 text-center`}>
+                  <p className={`text-2xl font-bold ${m.cor}`}>{m.val}{m.unit}</p>
+                  <p className="text-xs text-gray-500">{m.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Ingredientes expandível */}
+            <div>
+              <button
+                onClick={() => setExpandedIngredientes({
+                  ...expandedIngredientes,
+                  [horarioSelecionado]: !expandedIngredientes[horarioSelecionado],
+                })}
+                className="w-full flex items-center justify-between bg-gray-50 rounded-xl p-3"
+              >
+                <span className="text-sm font-semibold text-gray-800">Ingredientes</span>
+                {expandedIngredientes[horarioSelecionado] ? (
+                  <ChevronUp size={18} className="text-gray-400" />
+                ) : (
+                  <ChevronDown size={18} className="text-gray-400" />
+                )}
+              </button>
+              {expandedIngredientes[horarioSelecionado] && (
+                <div className="mt-2 space-y-1">
+                  {receitas[horarioSelecionado].ingredientes.map((ing, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-gray-700 bg-gray-50 p-2 rounded">
+                      <span className="text-rosa-500 font-bold">•</span>
+                      <span>{ing}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modo de preparo expandível */}
+            <div>
+              <button
+                onClick={() => setExpandedPreparo({
+                  ...expandedPreparo,
+                  [horarioSelecionado]: !expandedPreparo[horarioSelecionado],
+                })}
+                className="w-full flex items-center justify-between bg-gray-50 rounded-xl p-3"
+              >
+                <span className="text-sm font-semibold text-gray-800">Modo de Preparo</span>
+                {expandedPreparo[horarioSelecionado] ? (
+                  <ChevronUp size={18} className="text-gray-400" />
+                ) : (
+                  <ChevronDown size={18} className="text-gray-400" />
+                )}
+              </button>
+              {expandedPreparo[horarioSelecionado] && (
+                <div className="mt-2 space-y-2">
+                  {receitas[horarioSelecionado].modo_preparo.map((passo, i) => (
+                    <div key={i} className="flex gap-3 text-xs text-gray-700">
+                      <span className="font-bold text-rosa-500 min-w-5">{i + 1}.</span>
+                      <span>{passo}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Botões */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleGerarReceita}
+                disabled={loadingReceita}
+                className="btn-secondary flex items-center justify-center gap-2"
+              >
+                {loadingReceita ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight size={16} />}
+                Outra
+              </button>
+              <button
+                onClick={handleSalvarReceita}
+                className="btn-primary flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Salvar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Resumo de Macros: faltam ou ultrapassou ── */}

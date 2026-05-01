@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // quando o banco do Supabase está dormindo (plano gratuito tem cold start).
 const fetchComTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 25_000)
+  const timer = setTimeout(() => controller.abort(), 10_000)
   
   // Se o Supabase ou o navegador enviar um signal para cancelar a req,
   // repassamos esse cancelamento para o nosso controller interno.
@@ -28,6 +28,24 @@ const fetchComTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise
   
   return fetch(url as RequestInfo, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
+}
+
+// Retry automático com backoff exponencial — tenta novamente se falhar
+export async function fetchComRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  initialDelayMs = 500
+): Promise<T> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (i === maxAttempts - 1) throw err // última tentativa falhou
+      const delay = initialDelayMs * Math.pow(2, i) // 500ms, 1s, 2s
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+  throw new Error('Retry exceeded')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

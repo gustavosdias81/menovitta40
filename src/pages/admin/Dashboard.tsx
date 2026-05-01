@@ -5,7 +5,7 @@ import type { Profile, Notificacao } from '../../types'
 import {
   Crown, Users, UserPlus, Search, Bell, BellRing,
   MessageSquare, ChevronRight, Loader2, ArrowLeft, User,
-  Filter, Send, TrendingUp, Activity, WifiOff, Wifi, BookOpen, FlaskConical
+  Filter, Send, TrendingUp, Activity, WifiOff, Wifi, BookOpen, FlaskConical, DollarSign
 } from 'lucide-react'
 
 const FASE_LABELS: Record<string, string> = {
@@ -23,7 +23,7 @@ const faseBadge = (f: string) => {
   return map[f] || 'bg-gray-100 text-gray-500'
 }
 
-type TabKey = 'alunas' | 'stats' | 'notificacoes'
+type TabKey = 'alunas' | 'stats' | 'vendas' | 'notificacoes'
 type FiltroKey = 'todas' | 'ativas' | 'inativas' | 'quiz'
 
 export default function AdminDashboard() {
@@ -108,9 +108,24 @@ export default function AdminDashboard() {
     pos: profiles.filter(p => p.fase_menopausa === 'pos_menopausa').length,
   }
 
+  // Vendas stats
+  const today = new Date().toISOString().split('T')[0]
+  const vendaStats = {
+    vendedHoje: profiles.filter(p => p.created_at?.includes(today)).length,
+    totalClientes: profiles.filter(p => p.ativo !== false).length,
+    receita: profiles.filter(p => p.ativo !== false).length * 49.90,
+    conversao: profiles.length > 0 ? Math.round((profiles.filter(p => p.quiz_completo).length / profiles.length) * 100) : 0,
+  }
+
+  // Últimas alunas criadas
+  const recentAlunas = [...profiles]
+    .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+    .slice(0, 5)
+
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'alunas', label: 'Alunas' },
     { key: 'stats', label: 'Stats' },
+    { key: 'vendas', label: 'Vendas' },
     { key: 'notificacoes', label: 'Notificações' },
   ]
 
@@ -186,6 +201,10 @@ export default function AdminDashboard() {
             ) : tab.key === 'stats' ? (
               <span className="flex items-center justify-center gap-1">
                 <TrendingUp size={12} /> {tab.label}
+              </span>
+            ) : tab.key === 'vendas' ? (
+              <span className="flex items-center justify-center gap-1">
+                <DollarSign size={12} /> {tab.label}
               </span>
             ) : (
               <span className="flex items-center justify-center gap-1">
@@ -555,6 +574,93 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: VENDAS ── */}
+      {activeTab === 'vendas' && (
+        <div className="space-y-4">
+          {/* Métricas principais */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-3xl">📊</span>
+                <span className="text-xs text-gray-400 font-medium">Hoje</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{vendaStats.vendedHoje}</p>
+              <p className="text-xs text-gray-400 mt-1">Vendas Hoje</p>
+            </div>
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-3xl">💰</span>
+                <span className="text-xs text-gray-400 font-medium">Estimado</span>
+              </div>
+              <p className="text-3xl font-bold text-green-600">R$ {vendaStats.receita.toFixed(0)}</p>
+              <p className="text-xs text-gray-400 mt-1">Receita</p>
+            </div>
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-3xl">👥</span>
+                <span className="text-xs text-gray-400 font-medium">Total</span>
+              </div>
+              <p className="text-3xl font-bold text-rosa-500">{vendaStats.totalClientes}</p>
+              <p className="text-xs text-gray-400 mt-1">Clientes Ativos</p>
+            </div>
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-3xl">📈</span>
+                <span className="text-xs text-gray-400 font-medium">Taxa</span>
+              </div>
+              <p className="text-3xl font-bold text-blue-500">{vendaStats.conversao}%</p>
+              <p className="text-xs text-gray-400 mt-1">Conversão</p>
+            </div>
+          </div>
+
+          {/* Últimas alunas cadastradas */}
+          <div className="card">
+            <h2 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+              <UserPlus size={16} className="text-rosa-500" />
+              Últimas Alunas Cadastradas
+            </h2>
+            {recentAlunas.length === 0 ? (
+              <div className="text-center py-8">
+                <Users size={32} className="text-gray-200 mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Nenhuma aluna cadastrada ainda</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentAlunas.map(aluna => (
+                  <div key={aluna.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-rosa-400 to-rosa-600 rounded-full flex items-center justify-center text-white flex-shrink-0 overflow-hidden">
+                        {aluna.foto_url ? (
+                          <img src={aluna.foto_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={14} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{aluna.nome || 'Sem nome'}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{aluna.email}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${
+                      aluna.ativo !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {aluna.ativo !== false ? '✓ Ativa' : '✗ Inativa'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Info adicional */}
+          <div className="card bg-blue-50 border border-blue-100">
+            <p className="text-xs text-blue-700">
+              <span className="font-semibold">💡 Nota:</span> As receitas são estimadas com base em R$ 49,90 por aluna ativa/mês. Os dados são atualizados em tempo real baseado nos registros de perfis ativos.
+            </p>
           </div>
         </div>
       )}

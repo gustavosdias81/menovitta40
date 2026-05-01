@@ -40,6 +40,10 @@ import AdminAddUser from './pages/admin/AddUser'
 import AdminEditUser from './pages/admin/EditUser'
 import AdminArtigos from './pages/admin/Artigos'
 
+// Legal Pages
+import PrivacyPolicy from './pages/Legal/PrivacyPolicy'
+import TermsOfService from './pages/Legal/TermsOfService'
+
 function AppRoutes() {
   const { user, loading, quizCompleto } = useAuth()
 
@@ -73,6 +77,18 @@ function AppRoutes() {
       <Route path="/saude-info" element={
         <ProtectedRoute>
           <HealthInfo />
+        </ProtectedRoute>
+      } />
+
+      {/* Legal Pages (sem layout — tela cheia) */}
+      <Route path="/legal/privacidade" element={
+        <ProtectedRoute>
+          <PrivacyPolicy />
+        </ProtectedRoute>
+      } />
+      <Route path="/legal/termos" element={
+        <ProtectedRoute>
+          <TermsOfService />
         </ProtectedRoute>
       } />
 
