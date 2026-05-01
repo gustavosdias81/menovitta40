@@ -115,7 +115,7 @@ async function gerarReceitaIA(horario: HorarioRefeicao, fase: string): Promise<R
   const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
   const contexto = HORARIO_CONTEXTO[horario]
-  const prompt = `Você é nutricionista especializada em mulheres 40+ na menopausa (fase: ${fase}).
+  const prompt = `Você é a IA Menovitta 4.0, nutricionista especializada em mulheres 40+ na menopausa (fase: ${fase}).
 
 Gere EXATAMENTE 1 receita saudável para ${contexto}.
 
@@ -661,9 +661,9 @@ export default function NutritionalAI() {
         <div className="flex items-center gap-2 mb-4">
           <Sparkles size={18} className="text-rosa-500" />
           <h2 className="font-semibold text-gray-800">Receitas do Dia</h2>
-          <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-medium">IA</span>
+          <span className="text-[10px] bg-rosa-100 text-rosa-600 px-2 py-0.5 rounded-full font-medium">Menovitta IA</span>
         </div>
-        <p className="text-xs text-gray-500 mb-4">1 receita por refeição, gerada especialmente para você</p>
+        <p className="text-xs text-gray-500 mb-4">1 receita por refeição, gerada pela IA Menovitta 4.0</p>
 
         {/* Tabs para horários */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">

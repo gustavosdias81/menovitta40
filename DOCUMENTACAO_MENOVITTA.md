@@ -412,7 +412,7 @@ A aba anterior de "Sugestões IA" (receitas) foi removida. Apenas **Treino** e *
 - **Fluxo**:
   1. Usuária clica em uma aba (ex: Almoço)
   2. Se vazio → botão "Gerar Receita"
-  3. IA chama Gemini 2.0-flash-lite com prompt personalizado:
+  3. IA Menovitta 4.0 gera receita personalizada com prompt:
      - Contexto da fase menopáusica
      - Tipo de refeição
      - Prioridade: alta proteína, anti-inflamatório, máx 20min preparo
@@ -442,7 +442,7 @@ A aba anterior de "Sugestões IA" (receitas) foi removida. Apenas **Treino** e *
   - Offline: mostra receita em cache
 
 ### 💡 Benefício para o Usuário (Receitas)
-_"Não sabe o que comer? IA gera 1 receita saudável por refeição, adaptada ao seu peso, fase menopáusica, e objetivo. Clique 'Salvar' e as calorias/macros já estão no seu dia. Nenhuma contagem manual."_
+_"Não sabe o que comer? A IA Menovitta 4.0 gera 1 receita saudável por refeição, adaptada ao seu peso, fase menopáusica, e objetivo. Clique 'Salvar' e as calorias/macros já estão no seu dia. Nenhuma contagem manual."_
 
 ### 🎬 Descrição para Vídeo Demo (Receitas)
 > Usuária clica na aba "Almoço" → botão "Gerar Receita". Clica → spinner (5-10 segundos). IA retorna: "Filé de Salmão com Brócolis e Batata-doce" com imagem linda do Unsplash, 430 kcal, 40g proteína. Ingredientes e modo de preparo vêm fechados (com seta). Clica seta → expande lista de ingredientes. Depois clica "Salvar" → macros aparecem em "Seu Dia" e barras de progresso atualizam. **Tempo: ~1 min.**
