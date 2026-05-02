@@ -19,6 +19,8 @@ export interface Profile {
   quiz_completo: boolean
   foto_url?: string
   ativo?: boolean
+  horario_treino?: string  // Formato "HH:MM" (ex: "06:30")
+  notif_treino_ativada?: boolean  // Se notificações de treino estão ativadas
   created_at: string
   updated_at: string
 }

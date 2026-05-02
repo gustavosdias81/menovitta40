@@ -623,7 +623,7 @@ Acesso rápido a conta, suporte e legal. Logout.
 
 #### **Seção 1: Conta**
 - 👤 "Meu Perfil" → Link para `/perfil` (✏️ editar dados)
-- 🔔 "Notificações" → Badge "Em breve" (Coming Soon)
+- 🔔 "Notificações" → Link para `/notificacoes` (⏰ lembretes de treino)
 
 #### **Seção 2: Suporte**
 - 💬 "Falar no WhatsApp" → Abre WhatsApp com número pré-preenchido
@@ -651,7 +651,158 @@ _"Configurações rápidas, suporte ao alcance de um clique, logout seguro."_
 
 ---
 
-## 🎯 SEÇÃO 9: ADMIN DASHBOARD (Futuro)
+## 🔔 SEÇÃO 9: NOTIFICAÇÕES (Push Notifications)
+
+### 🎯 Propósito
+Aumentar retenção através de lembretes diários personalizados de treino. Usuária define o horário que treina, recebe notificação naquele horário para manter a consistência.
+
+### 🎨 Layout Visual
+**Página: `/notificacoes`**
+
+```
+┌────────────────────────────────────┐
+│ Notificações de Treino             │
+│ Receba lembretes para não perder   │
+│ seus treinos                       │
+├────────────────────────────────────┤
+│ 🔔 Permissão de Notificações       │
+│   ❌ Desativadas                    │
+│   [Conceder]                       │
+│   💡 Se recusar aqui, abra         │
+│   configurações do navegador       │
+├────────────────────────────────────┤
+│ 🕐 Horário do Treino               │
+│   [Seletor de Horário: 06:30]      │
+│   Receba lembrete neste horário    │
+│   todos os dias                    │
+├────────────────────────────────────┤
+│ Status das Notificações            │
+│   ✅ Ativadas                       │
+│   Lembrete diário às 06:30         │
+│   [Toggle: ON]                     │
+├────────────────────────────────────┤
+│ Ações                              │
+│ [🧪 Testar Notificação]            │
+│ [✅ Salvar Preferências]           │
+├────────────────────────────────────┤
+│ ℹ️ Como funciona                   │
+│  • Notificações enquanto app       │
+│    aberto (PWA local)              │
+│  • Seu horário sincroniza          │
+│  • Pode desativar a qualquer       │
+│    momento                         │
+└────────────────────────────────────┘
+```
+
+### 🔐 Funcionalidades
+
+#### **1. Solicitar Permissão**
+- Clique em **"Conceder"** → Navegador solicita permissão
+- Uma vez concedida: exibe "✅ Ativadas"
+- Se recusar: mostra aviso "💡 Configurações do navegador"
+
+#### **2. Definir Horário do Treino**
+- **Input**: Time picker `<input type="time">`
+- **Padrão**: 06:30
+- **Salvo em**: `profiles.horario_treino` (formato HH:MM)
+- **Sincronizado**: Todos os devices do usuário
+
+#### **3. Toggle Ativar/Desativar**
+- **ON**: Recebe notificação diária no horário agendado
+- **OFF**: Sem notificações, mas preferência é salva
+- **Estado**: `profiles.notif_treino_ativada` (boolean)
+
+#### **4. Testar Notificação**
+- Botão **"🧪 Testar Notificação"**
+- Envia notificação imediatamente
+- Ajuda a confirmar que permissão funciona
+
+#### **5. Salvar Preferências**
+- Clique **"✅ Salvar Preferências"**
+- Valida: permissão concedida? horário válido?
+- Salva em banco: `profiles.horario_treino` + `profiles.notif_treino_ativada`
+- Agenda notificação automática (via `agendarNotificacaoDiaria()`)
+- Redireciona para Settings após sucesso
+
+### 💻 Implementação Técnica
+
+#### **Arquivos**
+- `src/pages/NotificationSettings.tsx` — UI principal
+- `src/lib/notifications.ts` — Utilitários de notificação
+- `src/hooks/useNotificationScheduler.ts` — Hook de agendamento
+
+#### **Funções Core**
+
+**1. `requestNotificationPermission()`**
+```typescript
+// Solicita permissão ao navegador
+// Retorna: true (concedida) | false (negada/bloqueada)
+```
+
+**2. `getNotificationPermission()`**
+```typescript
+// Retorna status: 'granted' | 'denied' | 'default'
+```
+
+**3. `agendarNotificacaoDiaria(horario, titulo, opcoes)`**
+```typescript
+// horario: formato "HH:MM" (ex: "06:30")
+// Calcula tempo até próximo disparo
+// Se já passou hoje, agenda para amanhã
+// Usa setTimeout para primeiro disparo + setInterval para repetição (24h)
+```
+
+**4. `enviarNotificacao(titulo, opcoes)`**
+```typescript
+// Envia notificação imediata
+// Auto-fecha após 5 segundos
+// onClick → foca janela do app
+```
+
+**5. `testarNotificacao()`**
+```typescript
+// Envia notificação de teste imediatamente
+// Para debug/confirmação de permissão
+```
+
+#### **Fluxo de Agendamento**
+1. Usuária faz login → `useNotificationScheduler()` executa
+2. Hook verifica: `profile.notif_treino_ativada === true`?
+3. Se sim → chama `agendarNotificacaoDiaria(horario)`
+4. App calcula: "tempo até 06:30 amanhã" (se passou)
+5. `setTimeout` dispara primeiro lembrete
+6. `setInterval` repete a cada 24h
+
+#### **Banco de Dados**
+Novos campos na tabela `profiles`:
+```sql
+horario_treino VARCHAR(5)  -- Formato "HH:MM", padrão "06:30"
+notif_treino_ativada BOOLEAN  -- Default: false
+```
+
+### 📱 Comportamento em Diferentes Plataformas
+
+| Plataforma | Comportamento | Observações |
+|------------|---------------|-------------|
+| **Desktop** | Notificação visual no canto | Funciona enquanto navegador aberto |
+| **Mobile PWA** | Notificação nativa no topo | Funciona enquanto app aberto |
+| **Mobile Web** | Notificação visual em-app | Limitado (não funciona com app fechado) |
+
+### 🚀 Roadmap Futuro
+
+**Fase 1 (Atual)**: Notificações locais (PWA — app aberto)  
+**Fase 2 (Monetização)**: Web Push + Service Worker (24/7)  
+**Fase 3 (Enterprise)**: Firebase Cloud Messaging (iOS/Android nativo)
+
+### 💡 Benefício para o Usuário
+_"Nunca mais esqueça seus treinos! Um lembrete personalizado todos os dias no horário que você escolher. Aumento de retenção comprovado em apps de fitness."_
+
+### 🎬 Descrição para Vídeo Demo
+> Usuária entra em Configurações → Notificações. Clica "Conceder" permissão. Define horário: 07:00. Toca "Testar Notificação" → recebe lembrete imediato: "⏰ Hora do Treino! Seu treino está esperando por você 💪". Clica em "Salvar Preferências" e volta para o app.
+
+---
+
+## 🎯 SEÇÃO 10: ADMIN DASHBOARD
 
 *(Mencionado em Settings, mas ainda em desenvolvimento)*
 
@@ -670,7 +821,7 @@ _"Configurações rápidas, suporte ao alcance de um clique, logout seguro."_
 
 | Tabela | Colunas principais | Propósito |
 |--------|-------------------|-----------|
-| `profiles` | user_id, nome, email, peso, altura, fase, objetivo, quiz_completo, is_admin, ativo | Dados pessoais + role |
+| `profiles` | user_id, nome, email, peso, altura, fase, objetivo, quiz_completo, is_admin, ativo, horario_treino, notif_treino_ativada | Dados pessoais + role + notif prefs |
 | `anamnese_respostas` | user_id, ciclo_menstrual, sintomas, saude, alimentacao | Quiz responses |
 | `planos_acao` | user_id, trilha (8w/12w), semana_atual | Exercise plan state |
 | `treino_logs` | user_id, data, foco, duracao, local | Logs de exercícios |

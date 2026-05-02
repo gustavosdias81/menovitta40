@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, type ReactNode } from 'react'
 import { useAuth } from './contexts/AuthContext'
+import { useNotificationScheduler } from './hooks/useNotificationScheduler'
 
 // Redireciona para /quiz via useEffect (imperativo), nunca via JSX condicional.
 // Isso evita que o <Layout /> seja desmontado durante re-renders do AuthContext,
@@ -33,6 +34,7 @@ import ActionPlan from './pages/ActionPlan'
 import NutritionalAI from './pages/NutritionalAI'
 import Community from './pages/Community'
 import Settings from './pages/Settings'
+import NotificationSettings from './pages/NotificationSettings'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -46,6 +48,9 @@ import TermsOfService from './pages/Legal/TermsOfService'
 
 function AppRoutes() {
   const { user, loading, quizCompleto } = useAuth()
+
+  // Agendar notificações quando usuário fizer login
+  useNotificationScheduler()
 
   if (loading) {
     return (
@@ -106,6 +111,7 @@ function AppRoutes() {
         <Route path="/scanner" element={<NutritionalAI />} />
         <Route path="/comunidade" element={<Community />} />
         <Route path="/configuracoes" element={<Settings />} />
+        <Route path="/notificacoes" element={<NotificationSettings />} />
       </Route>
 
       {/* Admin (com BottomNav oculto — tela própria) */}
