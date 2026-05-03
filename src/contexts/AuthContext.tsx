@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null
   profile: Profile | null
   loading: boolean
+  profileFetched: boolean  // true após o banco responder (evita redirect prematuro no admin)
   dbAcordando: boolean   // true quando o banco está saindo do cold start
   isAdmin: boolean
   quizCompleto: boolean
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileFetched, setProfileFetched] = useState(false)
   const [dbAcordando, setDbAcordando] = useState(false)
   const [quizDone, setQuizDone] = useState(false)
 
@@ -66,6 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Erro perfil:', err)
       // Se falhou mas temos cache, o app já está mostrando o perfil — ok
+    } finally {
+      // Sinaliza que a consulta ao banco foi concluída (sucesso ou falha)
+      // ProtectedRoute usa isso para não redirecionar antes do is_admin real chegar
+      setProfileFetched(true)
     }
   }
 
@@ -223,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading, dbAcordando,
+      user, session, profile, loading, profileFetched, dbAcordando,
       isAdmin: profile?.is_admin ?? false,
       quizCompleto: quizDone,
       signIn, signUp, signOut, refreshProfile, setProfile, marcarQuizCompleto,

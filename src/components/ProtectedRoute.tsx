@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
-  const { user, loading, isAdmin, profile } = useAuth()
+  const { user, loading, isAdmin, profile, profileFetched } = useAuth()
 
   if (loading) {
     return (
@@ -24,6 +24,19 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Para rotas admin: aguarda o banco confirmar is_admin antes de redirecionar.
+  // Evita race condition onde o cache antigo (is_admin=false) causa redirect prematuro.
+  if (requireAdmin && !profileFetched) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-offwhite">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-rosa-500 animate-spin" />
+          <p className="text-sm text-gray-500">Verificando permissões...</p>
+        </div>
+      </div>
+    )
   }
 
   if (requireAdmin && !isAdmin) {
