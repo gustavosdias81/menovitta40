@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Loader2, WifiOff } from 'lucide-react'
@@ -10,6 +10,14 @@ interface Props {
 
 export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
   const { user, loading, isAdmin, profile, profileFetched } = useAuth()
+
+  // Timeout de segurança: se o banco demorar mais de 12s, libera baseado no que temos
+  const [adminCheckTimeout, setAdminCheckTimeout] = useState(false)
+  useEffect(() => {
+    if (!requireAdmin || profileFetched) return
+    const t = setTimeout(() => setAdminCheckTimeout(true), 12_000)
+    return () => clearTimeout(t)
+  }, [requireAdmin, profileFetched])
 
   if (loading) {
     return (
@@ -27,8 +35,8 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
   }
 
   // Para rotas admin: aguarda o banco confirmar is_admin antes de redirecionar.
-  // Evita race condition onde o cache antigo (is_admin=false) causa redirect prematuro.
-  if (requireAdmin && !profileFetched) {
+  // Tem timeout de 12s para não travar caso o banco esteja dormindo.
+  if (requireAdmin && !profileFetched && !adminCheckTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-offwhite">
         <div className="flex flex-col items-center gap-3">
