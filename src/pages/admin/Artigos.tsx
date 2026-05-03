@@ -89,7 +89,7 @@ export default function AdminArtigos() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/dashboard')}
           className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"
         >
           <ArrowLeft size={18} className="text-gray-600" />

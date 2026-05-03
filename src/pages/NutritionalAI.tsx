@@ -451,50 +451,104 @@ export default function NutritionalAI() {
       <p className="page-subtitle mb-4">Controle seus macros e receba sugestões personalizadas</p>
 
       {/* ── Resumo do Dia ── */}
-      <div className="card mb-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="card mb-4 overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
             <TrendingUp size={16} className="text-rosa-500" /> Seu Dia
           </h2>
           <span className="text-xs text-gray-400">{todayLogs.length} refeição{todayLogs.length !== 1 ? 'ões' : ''}</span>
         </div>
 
-        {/* Barras de progresso */}
-        <div className="space-y-2.5 mb-4">
-          {macros.map((m, i) => {
+        {/* ── GAUGE DE CALORIAS EM DESTAQUE ── */}
+        {(() => {
+          const calPct = pct(consumido.calorias, meta.calorias)
+          const calExcedeu = consumido.calorias > meta.calorias
+          const calMeta = meta.calorias
+          const calConsumido = Math.round(consumido.calorias)
+          return (
+            <div className={`rounded-2xl p-4 mb-4 ${calExcedeu ? 'bg-gradient-to-br from-red-50 to-orange-50' : 'bg-gradient-to-br from-orange-50 via-amber-50 to-ouro-50'}`}>
+              {/* Números principais */}
+              <div className="flex items-end justify-between mb-3">
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">🔥 Calorias Hoje</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-4xl font-black tabular-nums ${calExcedeu ? 'text-red-500' : 'text-orange-500'}`}>
+                      {calConsumido}
+                    </span>
+                    <span className="text-sm text-gray-400 font-medium">/ {calMeta} kcal</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-3xl font-black tabular-nums ${calExcedeu ? 'text-red-400' : 'text-orange-400'}`}>
+                    {calPct}%
+                  </p>
+                  <p className="text-[10px] text-gray-400 font-medium">da meta</p>
+                </div>
+              </div>
+
+              {/* Barra grande de progresso */}
+              <div className="h-5 bg-white/70 rounded-full overflow-hidden shadow-inner mb-2">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${
+                    calExcedeu
+                      ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                      : calPct >= 80
+                        ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                        : 'bg-gradient-to-r from-ouro-300 to-orange-400'
+                  }`}
+                  style={{ width: `${calPct}%` }}
+                />
+              </div>
+
+              {/* Status text */}
+              <p className={`text-[11px] font-semibold ${calExcedeu ? 'text-red-500' : 'text-orange-600'}`}>
+                {calConsumido === 0
+                  ? `Meta: ${calMeta} kcal — comece registrando suas refeições`
+                  : calExcedeu
+                    ? `⚠️ ${Math.round(consumido.calorias - meta.calorias)} kcal acima da meta — prefira refeições leves`
+                    : calPct >= 100
+                      ? '✅ Meta calórica atingida hoje!'
+                      : `Faltam ${Math.round(faltam.calorias)} kcal para a meta de hoje`}
+              </p>
+            </div>
+          )
+        })()}
+
+        {/* ── MACROS (Proteína / Gordura / Carboidrato) ── */}
+        <div className="space-y-3 mb-4">
+          {macros.slice(1).map((m, i) => {
             const p = pct(m.consumido, m.meta)
             return (
-              <div key={i}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className={`font-semibold ${m.cor}`}>{m.label}</span>
-                  <span className="text-gray-500">
-                    <span className="font-medium text-gray-700">{Math.round(m.consumido)}{m.unit}</span>
-                    {' / '}{m.meta}{m.unit}
-                    {m.falta > 0 && <span className="text-green-600 ml-1">(faltam {Math.round(m.falta)}{m.unit})</span>}
-                    {m.falta === 0 && <span className="text-orange-500 ml-1">✓ meta atingida</span>}
-                  </span>
+              <div key={i} className="flex items-center gap-3">
+                {/* Mini card */}
+                <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex flex-col items-center justify-center ${m.bg}`}>
+                  <p className={`text-[11px] font-black leading-none ${m.cor}`}>{Math.round(m.consumido)}</p>
+                  <p className="text-[9px] text-gray-400 leading-none">{m.label}</p>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${barColor(p)}`} style={{ width: `${p}%` }} />
+                {/* Barra + texto */}
+                <div className="flex-1">
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className={`font-semibold ${m.cor}`}>{m.label}</span>
+                    <span className="text-gray-400">
+                      {Math.round(m.consumido)}{m.unit}
+                      <span className="text-gray-300"> / {m.meta}{m.unit}</span>
+                      {m.falta <= 0 && <span className="text-green-500 ml-1">✓</span>}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${barColor(p)}`}
+                      style={{ width: `${p}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             )
           })}
         </div>
 
-        {/* Cards resumo */}
-        <div className="grid grid-cols-4 gap-2">
-          {macros.map((m, i) => (
-            <div key={i} className={`rounded-xl p-2 text-center ${m.bg}`}>
-              <p className={`text-base font-bold ${m.cor}`}>{Math.round(m.consumido)}</p>
-              <p className="text-[10px] text-gray-400">/ {m.meta}{m.unit}</p>
-              <p className="text-[10px] text-gray-500">{m.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Dica Menovitta */}
-        <div className="mt-3 bg-rosa-50 rounded-xl p-3">
+        {/* ── Dica Menovitta ── */}
+        <div className="bg-rosa-50 rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={13} className="text-rosa-500" />
             <span className="text-xs font-semibold text-rosa-700">Dica Menovitta</span>

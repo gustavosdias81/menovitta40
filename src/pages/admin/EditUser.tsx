@@ -263,7 +263,7 @@ export default function EditUser() {
     return (
       <div className="page-container text-center py-20">
         <p className="text-gray-500">Aluna não encontrada</p>
-        <button onClick={() => navigate('/admin')} className="btn-primary mt-4">Voltar</button>
+        <button onClick={() => navigate('/dashboard')} className="btn-primary mt-4">Voltar</button>
       </div>
     )
   }
@@ -280,7 +280,7 @@ export default function EditUser() {
       {/* Header melhorado */}
       <div className="flex items-center gap-3 mb-4">
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/dashboard')}
           className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"
         >
           <ArrowLeft size={18} className="text-gray-600" />

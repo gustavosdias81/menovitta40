@@ -168,14 +168,14 @@ export default function AdminDashboard() {
           <p className="text-sm text-gray-500">Gerencie suas alunas</p>
         </div>
         <button
-          onClick={() => navigate('/admin/artigos')}
+          onClick={() => navigate('/dashboard/artigos')}
           title="Gerenciar Artigos"
           className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center shadow-sm"
         >
           <FlaskConical size={18} className="text-purple-500" />
         </button>
         <button
-          onClick={() => navigate('/admin/nova-aluna')}
+          onClick={() => navigate('/dashboard/nova-aluna')}
           className="w-10 h-10 bg-rosa-500 rounded-xl flex items-center justify-center shadow-md"
         >
           <UserPlus size={18} className="text-white" />
@@ -281,7 +281,7 @@ export default function AdminDashboard() {
               </p>
               {!search && filtro === 'todas' && (
                 <button
-                  onClick={() => navigate('/admin/nova-aluna')}
+                  onClick={() => navigate('/dashboard/nova-aluna')}
                   className="btn-primary mt-4"
                 >
                   <UserPlus size={16} className="inline mr-2" />
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
               {alunasFiltradas.map(aluna => (
                 <div key={aluna.id} className="card flex items-center gap-3">
                   <button
-                    onClick={() => navigate(`/admin/aluna/${aluna.user_id}`)}
+                    onClick={() => navigate(`/dashboard/aluna/${aluna.user_id}`)}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
                     <div className="w-11 h-11 bg-gradient-to-br from-rosa-400 to-rosa-600 rounded-full flex items-center justify-center text-white flex-shrink-0 overflow-hidden">
@@ -410,7 +410,7 @@ export default function AdminDashboard() {
           {/* Atalho artigos científicos */}
           <div
             className="card flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/admin/artigos')}
+            onClick={() => navigate('/dashboard/artigos')}
           >
             <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
               <FlaskConical size={22} className="text-purple-500" />

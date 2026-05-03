@@ -114,27 +114,31 @@ function AppRoutes() {
         <Route path="/notificacoes" element={<NotificationSettings />} />
       </Route>
 
-      {/* Admin (com BottomNav oculto — tela própria) */}
-      <Route path="/admin" element={
+      {/* ── Painel Admin — slug /dashboard separado do app de usuárias ── */}
+      <Route path="/dashboard" element={
         <ProtectedRoute requireAdmin>
           <AdminDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/admin/nova-aluna" element={
+      <Route path="/dashboard/nova-aluna" element={
         <ProtectedRoute requireAdmin>
           <AdminAddUser />
         </ProtectedRoute>
       } />
-      <Route path="/admin/aluna/:userId" element={
+      <Route path="/dashboard/aluna/:userId" element={
         <ProtectedRoute requireAdmin>
           <AdminEditUser />
         </ProtectedRoute>
       } />
-      <Route path="/admin/artigos" element={
+      <Route path="/dashboard/artigos" element={
         <ProtectedRoute requireAdmin>
           <AdminArtigos />
         </ProtectedRoute>
       } />
+
+      {/* Redireciona URLs antigas /admin → /dashboard (compatibilidade) */}
+      <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
 
       {/* Redirect */}
       <Route path="*" element={<Navigate to={user ? "/perfil" : "/login"} replace />} />

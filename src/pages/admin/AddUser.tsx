@@ -66,7 +66,7 @@ export default function AddUser() {
           >
             Cadastrar Outra
           </button>
-          <button onClick={() => navigate('/admin')} className="btn-primary">
+          <button onClick={() => navigate('/dashboard')} className="btn-primary">
             Ver Alunas
           </button>
         </div>
@@ -79,7 +79,7 @@ export default function AddUser() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/dashboard')}
           className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"
         >
           <ArrowLeft size={18} className="text-gray-600" />

@@ -109,7 +109,7 @@ export default function Settings() {
       {/* Admin Badge */}
       {isAdmin && (
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/dashboard')}
           className="card w-full flex items-center gap-3 mb-4 bg-gradient-to-r from-ouro-50 to-ouro-100 border-ouro-200"
         >
           <div className="w-10 h-10 bg-ouro-400 rounded-xl flex items-center justify-center">
