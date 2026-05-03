@@ -91,11 +91,13 @@ export function enviarNotificacao(
     return
   }
 
-  const notif = new Notification(titulo, {
-    icon: '/logo.png', // Ícone do app
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const NotifClass = (window as any).Notification as typeof Notification
+  const notif: Notification = new NotifClass(titulo, {
+    icon: '/logo.png',
     badge: '/logo-badge.png',
     tag: 'menovitta-notif',
-    requireInteraction: false, // Permite auto-fechar
+    requireInteraction: false,
     ...opcoes,
   })
 
@@ -116,8 +118,8 @@ export function enviarNotificacao(
  * o navegador/PWA estiver aberto.
  */
 export function cancelarNotificacoes() {
-  // Fecha qualquer notificação ativa
-  Notification.close?.()
+  // Nota: a Web Notification API não permite fechar notificações globalmente
+  // via método estático. Isso é gerenciado pelo Service Worker quando aplicável.
   console.log('Notificações canceladas')
 }
 
