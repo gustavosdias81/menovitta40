@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, wakeUpSupabase } from '../lib/supabase'
 import type { Profile } from '../types'
 
 interface AuthContextType {
@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null
   profile: Profile | null
   loading: boolean
+  dbAcordando: boolean   // true quando o banco está saindo do cold start
   isAdmin: boolean
   quizCompleto: boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dbAcordando, setDbAcordando] = useState(false)
   const [quizDone, setQuizDone] = useState(false)
 
   // Busca perfil — padrão stale-while-revalidate:
@@ -100,6 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 3000)
 
     const init = async () => {
+      // ── Wake-up ping: acorda o banco ANTES de qualquer query real ──
+      // Fire-and-forget — não bloqueia o loading principal.
+      // Se demorar > 2s para responder, ativa o banner "Conectando..."
+      wakeUpSupabase(
+        () => { if (mounted) setDbAcordando(true) },   // banco demorando → mostra aviso
+        () => { if (mounted) setDbAcordando(false) },  // banco respondeu → esconde aviso
+      )
+
       let sessionUser: import('@supabase/supabase-js').User | null = null
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -213,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading,
+      user, session, profile, loading, dbAcordando,
       isAdmin: profile?.is_admin ?? false,
       quizCompleto: quizDone,
       signIn, signUp, signOut, refreshProfile, setProfile, marcarQuizCompleto,

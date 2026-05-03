@@ -53,6 +53,77 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // ============================================================
+// WAKE-UP PING — Acorda o banco Supabase (plano gratuito dorme)
+// ============================================================
+// O plano gratuito "pausa" o banco após ~7 dias sem uso.
+// O primeiro acesso depois da pausa demora 5-30s (cold start).
+//
+// Estratégia: disparar um ping leve assim que o app abre,
+// ANTES de qualquer query real, para que o banco esteja quente
+// quando o usuário realmente precisar dos dados.
+//
+// Cache de 4 minutos: se o banco foi acessado recentemente,
+// pula o ping (já está acordado).
+// ============================================================
+
+const WAKE_CACHE_KEY = 'menovitta_db_wake'
+const WAKE_TTL_MS    = 4 * 60 * 1000   // 4 minutos
+
+function bancoEstaQuente(): boolean {
+  try {
+    const last = localStorage.getItem(WAKE_CACHE_KEY)
+    if (!last) return false
+    return Date.now() - Number(last) < WAKE_TTL_MS
+  } catch {
+    return false
+  }
+}
+
+function marcarBancoQuente() {
+  try { localStorage.setItem(WAKE_CACHE_KEY, String(Date.now())) } catch { /* ignora */ }
+}
+
+/**
+ * Dispara uma query mínima para acordar o banco Supabase.
+ * Fire-and-forget: chame sem await para não bloquear o fluxo principal.
+ *
+ * @param onAcordando — callback chamado se o banco demorar > 2s para responder
+ * @param onPronto    — callback chamado quando o banco responde (ou cache hit)
+ */
+export async function wakeUpSupabase(
+  onAcordando?: () => void,
+  onPronto?: () => void
+): Promise<void> {
+  // Se o banco foi acessado nos últimos 4 min, já está quente
+  if (bancoEstaQuente()) {
+    onPronto?.()
+    return
+  }
+
+  // Timer: se demorar mais de 2s, avisa que está acordando
+  const timer = setTimeout(() => onAcordando?.(), 2000)
+
+  try {
+    // Query mínima: busca 1 artigo publicado (leitura pública, sem auth)
+    // Apenas para acordar o banco — descartamos o resultado
+    await supabase
+      .from('artigos')
+      .select('id')
+      .eq('publicado', true)
+      .limit(1)
+      .maybeSingle()
+
+    marcarBancoQuente()
+    onPronto?.()
+  } catch {
+    // Falhou (timeout, sem internet) — não bloqueia o app
+    // O banco tentará acordar normalmente na próxima query real
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// ============================================================
 // FUNÇÕES AUXILIARES DE BANCO
 // ============================================================
 

@@ -4,6 +4,7 @@ import { User, ClipboardList, Camera, Users, Settings } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getNotificacoes, marcarNotificacaoLida } from '../lib/supabase'
 import type { Notificacao } from '../types'
+import DbWakeBanner from './DbWakeBanner'
 
 const NAV_ITEMS = [
   { path: '/perfil', label: 'Perfil', icon: User },
@@ -85,6 +86,9 @@ export default function Layout() {
           </div>
         </div>
       )}
+
+      {/* Banner de wake-up (aparece só quando banco está acordando) */}
+      <DbWakeBanner />
 
       {/* Page content */}
       <main className="pb-20">
