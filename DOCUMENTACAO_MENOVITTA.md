@@ -349,23 +349,52 @@ A aba anterior de "Sugestões IA" (receitas) foi removida. Apenas **Treino** e *
 
 #### **Section 1: Seu Dia (Daily Summary)**
 - **Título**: "Seu Dia"
-- **4 Progress Bars** (Kcal, Proteína, Gordura, Carboidrato):
-  ```
-  Kcal: ████████░░ 1800 / 2000 (90%)
-  Prot: ██████░░░░ 120g / 150g (80%)
-  Gord: █████░░░░░ 50g / 65g (77%)
-  Carb: ███████░░░ 200g / 250g (80%)
-  ```
-  - **Cores dinâmicas**:
-    - Verde (0-70% de meta) — abaixo da meta
-    - Amarelo (70-100% de meta) — próximo de completar
-    - Laranja (100-120% de meta) — ligeiramente acima
-    - Vermelho (120%+) — acima de meta
-- **Grid 2×2** abaixo mostrando consumido vs. meta
-- **Dica Menovitta Box** (contextual):
-  - Se 0 consumido: _"Comece registrando seu café da manhã"_
-  - Se abaixo meta: _"Faltam 300 kcal para sua meta. Que tal um lanche?"_
-  - Se acima meta: _"Ultrapassou 200 kcal hoje. Sem problema — amanhã é novo dia!"_
+
+##### 🔥 Gauge de Calorias em Destaque (hero do card)
+O card abre com um painel de calorias grande e visualmente impactante:
+```
+┌────────────────────────────────────────────┐
+│ 🔥 CALORIAS HOJE                           │
+│                                            │
+│   1.240          /  1.600 kcal      78%   │
+│   (4xl bold)                  (3xl bold)  │
+│                                            │
+│  ████████████████████████░░░░░░░░░░░  78% │
+│  (barra larga h-5 com gradiente animado)  │
+│                                            │
+│  Faltam 360 kcal para a meta de hoje      │
+└────────────────────────────────────────────┘
+```
+- **Número de kcal consumido** em fonte gigante (text-4xl bold)
+- **Porcentagem da meta** à direita (text-3xl bold)
+- **Barra larga de progresso** com gradiente:
+  - Dourado/âmbar → `0–79%` (dentro da meta)
+  - Laranja → `80–99%` (quase lá)
+  - Vermelho → `100%+` (excedeu)
+- **Status dinâmico** abaixo da barra:
+  - Sem registro → `"Meta: 1.600 kcal — comece registrando suas refeições"`
+  - Abaixo da meta → `"Faltam 360 kcal para a meta de hoje"`
+  - Meta atingida → `"✅ Meta calórica atingida hoje!"`
+  - Acima da meta → `"⚠️ 200 kcal acima da meta — prefira refeições leves"`
+- **Fundo gradiente suave** que muda de tom (âmbar para vermelho) conforme excede
+
+##### 📊 Macros Secundários (abaixo do gauge)
+Três linhas compactas com mini-card + barra fina:
+```
+[Prot]  ██████████░░  85g / 90g  ✓
+[Gord]  ████████░░░░  42g / 55g
+[Carb]  █████████░░░  140g / 180g
+```
+- Cada linha: mini-card colorido (10×10) + label + slim bar + texto `consumido / meta`
+- Checkmark ✓ verde quando macro atingida
+- Mesmas cores dinâmicas (verde → amarelo → laranja → vermelho)
+
+##### 💡 Dica Menovitta Box (rodapé do card)
+Caixa rosa contextual sempre visível:
+- Se 0 consumido: _"Comece registrando suas refeições. Sua meta é X kcal com Xg de proteína."_
+- Se abaixo meta: _"Faltam X kcal e Xg de proteína para atingir sua meta de hoje."_
+- Se acima meta: _"Você ultrapassou X kcal da sua meta hoje. Prefira refeições mais leves nas próximas."_
+- Se meta atingida: _"Parabéns! Você atingiu sua meta calórica hoje. Priorize proteína nas próximas refeições."_
 
 #### **Section 2: Scanner de Pratos (Image Analysis)**
 - **Título**: "Scanner de Pratos"
