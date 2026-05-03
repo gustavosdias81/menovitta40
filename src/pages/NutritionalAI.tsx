@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useAuth } from '../contexts/AuthContext'
 import { saveFoodLog, getFoodLogs, getPlanoAcao } from '../lib/supabase'
 import type { FoodLog, PlanoAcao } from '../types'
@@ -9,11 +8,16 @@ import {
   CheckCircle2, Target, ChevronDown, ChevronUp, ChevronRight, Zap
 } from 'lucide-react'
 
-// ── IA Nutricional Menovitta (Gemini) ─────────────────────────────────────────
-function getGemini() {
-  const key = import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
-  return new GoogleGenerativeAI(key)
+// ── Proxy seguro — chama /api/gemini (servidor), nunca expõe a chave ─────────
+async function callGeminiProxy(body: object): Promise<string> {
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Erro na IA')
+  return data.text as string
 }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -111,9 +115,6 @@ function getUnsplashUrl(termo: string): string {
 
 // ── Geração de Receitas IA ────────────────────────────────────────────────────
 async function gerarReceitaIA(horario: HorarioRefeicao, fase: string): Promise<Receita> {
-  const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
   const contexto = HORARIO_CONTEXTO[horario]
   const prompt = `Você é a IA Menovitta 4.0, nutricionista especializada em mulheres 40+ na menopausa (fase: ${fase}).
 
@@ -140,9 +141,8 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json) com este formato e
 }`
 
   try {
-    const result = await model.generateContent(prompt)
-    const text = result.response.text().trim()
-    const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+    const text = await callGeminiProxy({ type: 'text', prompt })
+    const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
     return JSON.parse(clean) as Receita
   } catch (err) {
     console.error('Erro ao gerar receita:', err)
@@ -152,22 +152,18 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`json) com este formato e
 
 // ── Análise de foto ───────────────────────────────────────────────────────────
 async function analisarPratoIA(imageFile: File): Promise<AnaliseResultado> {
-  const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => {
         const result = reader.result as string
-        resolve(result.split(',')[1]) // apenas o base64 puro, sem prefixo data:
+        resolve(result.split(',')[1])
       }
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
 
   const base64Data = await toBase64(imageFile)
-  // Normaliza HEIF/HEIC do iPhone → jpeg
   const mimeType = (imageFile.type === 'image/heif' || imageFile.type === 'image/heic')
     ? 'image/jpeg'
     : (imageFile.type || 'image/jpeg')
@@ -194,12 +190,8 @@ Se não conseguir identificar alimentos, retorne confianca: 0 e calorias: 0.`
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { data: base64Data, mimeType } },
-      ])
-      const text = result.response.text().trim()
-      const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+      const text = await callGeminiProxy({ type: 'vision', prompt, image: base64Data, mimeType })
+      const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
       return JSON.parse(clean) as AnaliseResultado
     } catch (err) {
       if (attempt === 2) throw err
@@ -400,11 +392,11 @@ export default function NutritionalAI() {
     } catch (err: unknown) {
       console.error('Erro análise IA:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('VITE_GEMINI_API_KEY')) {
-        setScanError('Chave da IA não configurada no Vercel. Adicione VITE_GEMINI_API_KEY nas variáveis de ambiente.')
-      } else if (msg.includes('401') || msg.includes('API key') || msg.includes('API_KEY_INVALID')) {
-        setScanError('Chave da IA inválida ou sem permissão. Verifique a chave no Vercel.')
-      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+      if (msg.includes('não configurada') || msg.includes('não configurad')) {
+        setScanError('IA não configurada. Contate o suporte.')
+      } else if (msg.includes('inválida') || msg.includes('401') || msg.includes('403')) {
+        setScanError('Chave da IA inválida. Contate o suporte.')
+      } else if (msg.includes('quota') || msg.includes('429') || msg.includes('Limite')) {
         setScanError('Limite de requisições atingido. Aguarde alguns minutos e tente novamente.')
       } else {
         setScanError(`Erro ao analisar: ${msg.slice(0, 100)}`)
