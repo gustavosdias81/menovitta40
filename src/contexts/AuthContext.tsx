@@ -230,7 +230,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, loading, profileFetched, dbAcordando,
-      isAdmin: profile?.is_admin ?? false,
+      // Verifica is_admin em 3 fontes (ordem de prioridade):
+      // 1. user_metadata do Supabase Auth (sem RLS, sempre disponível)
+      // 2. profile da tabela profiles (pode falhar por RLS)
+      // 3. false como fallback
+      isAdmin: (user?.user_metadata?.is_admin === true) || (profile?.is_admin === true),
       quizCompleto: quizDone,
       signIn, signUp, signOut, refreshProfile, setProfile, marcarQuizCompleto,
     }}>
