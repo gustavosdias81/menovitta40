@@ -67,7 +67,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // ============================================================
 
 const WAKE_CACHE_KEY = 'menovitta_db_wake'
-const WAKE_TTL_MS    = 4 * 60 * 1000   // 4 minutos
+const WAKE_TTL_MS    = 2 * 60 * 1000   // 2 minutos — chamado a cada navegação, mantém banco quente
 
 function bancoEstaQuente(): boolean {
   try {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { User, ClipboardList, Camera, Users, Settings } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getNotificacoes, marcarNotificacaoLida } from '../lib/supabase'
+import { getNotificacoes, marcarNotificacaoLida, wakeUpSupabase } from '../lib/supabase'
 import type { Notificacao } from '../types'
 import DbWakeBanner from './DbWakeBanner'
 
@@ -22,9 +22,13 @@ export default function Layout() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [modalNotif, setModalNotif] = useState<Notificacao | null>(null)
 
-  // Scroll ao topo a cada troca de aba
+  // Scroll ao topo + acorda o banco a cada troca de rota
+  // Resolve o bug de "não carrega ao voltar": o banco Supabase (plano gratuito)
+  // pode adormecer após 4+ minutos de inatividade. O wakeUpSupabase usa cache
+  // interno de 4 min — só dispara um ping real se o banco pode estar dormindo.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    wakeUpSupabase() // fire-and-forget: não bloqueia a navegação
   }, [location.pathname])
 
   useEffect(() => {

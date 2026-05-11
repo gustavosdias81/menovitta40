@@ -2,14 +2,22 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Sparkles, X, Loader2, ArrowLeft } from 'lucide-react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { FaseMenopausa, Objetivo } from '../types'
 
-// ── GEMINI ────────────────────────────────────────────────────────────────────
-function getGemini() {
-  const key = import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) throw new Error('VITE_GEMINI_API_KEY não configurada')
-  return new GoogleGenerativeAI(key)
+// ── PROXY SEGURO — chama /api/gemini (servidor), nunca expõe a chave ──────────
+async function callGeminiProxy(prompt: string): Promise<string> {
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'text', prompt }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Erro ${res.status} na IA`)
+  }
+  const { text } = await res.json()
+  if (!text) throw new Error('Resposta vazia da IA')
+  return text
 }
 
 // ── LABEL DO OBJETIVO ─────────────────────────────────────────────────────────
@@ -197,8 +205,6 @@ interface TopicoIA {
 }
 
 async function gerarTopicosIA(fase: FaseMenopausa, objetivo: Objetivo, nome: string): Promise<TopicoIA[]> {
-  const genai = getGemini()
-  const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
   const objetivoLabel = OBJETIVO_LABELS[objetivo] || 'Saúde Geral'
   const prompt = `Você é a IA Menovitta, especialista em saúde feminina 40+.
 A aluna ${nome || 'Aluna'} está na fase ${fase.replace(/_/g, '-')} e seu objetivo principal é: ${objetivoLabel}.
@@ -214,8 +220,7 @@ Retorne SOMENTE um array JSON válido (sem markdown, sem texto antes ou depois):
   for (let attempt = 0; attempt < 3; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
     try {
-      const result = await model.generateContent(prompt)
-      const text = result.response.text().trim()
+      const text = await callGeminiProxy(prompt)
       const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
       const arr = JSON.parse(clean)
       if (!Array.isArray(arr) || arr.length === 0) throw new Error('Resposta inválida da IA')
