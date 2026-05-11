@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
+  supabase,
   getProfile, updateProfile, getPlanoAcao, upsertPlanoAcao, getAnamnese,
   getTreinoLogsAdmin, getFoodLogsAdmin, createNotificacao, toggleAtivoAluna
 } from '../../lib/supabase'
@@ -9,7 +10,7 @@ import {
   ArrowLeft, Save, Loader2, User, ClipboardList,
   Dumbbell, Apple, Brain, TrendingUp, FileText,
   Scale, Ruler, Calendar, Target, Plus, MessageSquare,
-  Activity, Send, Wifi, WifiOff
+  Activity, Send, Wifi, WifiOff, Clock, PlusCircle
 } from 'lucide-react'
 
 const FASE_LABELS: Record<FaseMenopausa, string> = {
@@ -62,6 +63,8 @@ export default function EditUser() {
   const [objetivo, setObjetivo] = useState<Objetivo>('emagrecer')
   const [ativo, setAtivo] = useState(true)
   const [togglingAtivo, setTogglingAtivo] = useState(false)
+  const [acessoExpira, setAcessoExpira] = useState<string | null>(null)
+  const [estendendoAcesso, setEstendendoAcesso] = useState(false)
 
   // Plano state
   const [plano, setPlano] = useState<PlanoAcao | null>(null)
@@ -120,6 +123,7 @@ export default function EditUser() {
       setFaseMenopausa((p.fase_menopausa as FaseMenopausa) || 'menopausa')
       setObjetivo((p.objetivo as Objetivo) || 'emagrecer')
       setAtivo(p.ativo !== false)
+      setAcessoExpira(p.acesso_expira || null)
     }
 
     if (planoRes.data) {
@@ -211,6 +215,29 @@ export default function EditUser() {
       setProfile(prev => prev ? { ...prev, ativo: novoAtivo } : prev)
     }
     setTogglingAtivo(false)
+  }
+
+  const handleEstenderAcesso = async (dias: number | null) => {
+    if (!userId) return
+    setEstendendoAcesso(true)
+    let novaExpiracao: string | null = null
+    if (dias !== null) {
+      // Se já tem data futura, estende a partir dela; senão, a partir de hoje
+      const base = acessoExpira && new Date(acessoExpira) > new Date()
+        ? new Date(acessoExpira)
+        : new Date()
+      base.setDate(base.getDate() + dias)
+      novaExpiracao = base.toISOString().split('T')[0]
+    }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ acesso_expira: novaExpiracao, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    if (!error) {
+      setAcessoExpira(novaExpiracao)
+      setProfile(prev => prev ? { ...prev, acesso_expira: novaExpiracao } : prev)
+    }
+    setEstendendoAcesso(false)
   }
 
   const handleEnviarNotificacao = async () => {
@@ -415,6 +442,69 @@ export default function EditUser() {
                   ))}
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* Card: Período de Acesso */}
+          <div className="card">
+            <h2 className="font-semibold text-gray-800 text-sm mb-1 flex items-center gap-2">
+              <Clock size={16} className="text-rosa-500" />
+              Período de Acesso
+            </h2>
+            <p className="text-xs text-gray-400 mb-3">
+              Controle o acesso por tempo limitado (desafios e programas).
+            </p>
+
+            {/* Status atual */}
+            {acessoExpira ? (
+              (() => {
+                const exp = new Date(acessoExpira + 'T23:59:59')
+                const hoje = new Date()
+                const diasRestantes = Math.ceil((exp.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+                const expirado = diasRestantes < 0
+                return (
+                  <div className={`rounded-xl p-3 mb-3 text-sm ${expirado ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                    {expirado ? (
+                      <>⛔ Acesso expirado há {Math.abs(diasRestantes)} dia(s)<br />
+                      <span className="text-xs opacity-70">Expirou em {new Date(acessoExpira + 'T12:00:00').toLocaleDateString('pt-BR')}</span></>
+                    ) : (
+                      <>⏰ Expira em <strong>{diasRestantes} dia(s)</strong><br />
+                      <span className="text-xs opacity-70">{new Date(acessoExpira + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span></>
+                    )}
+                  </div>
+                )
+              })()
+            ) : (
+              <div className="rounded-xl p-3 mb-3 text-sm bg-green-50 text-green-700">
+                ✅ Acesso permanente (sem expiração)
+              </div>
+            )}
+
+            {/* Botões de extensão */}
+            <p className="text-[11px] text-gray-400 mb-2 font-medium uppercase tracking-wide">
+              {acessoExpira ? 'Estender acesso a partir de agora:' : 'Definir período de acesso:'}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { dias: 7, label: '+7 dias' },
+                { dias: 14, label: '+14 dias' },
+                { dias: 30, label: '+30 dias' },
+                { dias: null, label: '∞ Perm.' },
+              ].map(op => (
+                <button
+                  key={String(op.dias)}
+                  type="button"
+                  onClick={() => handleEstenderAcesso(op.dias)}
+                  disabled={estendendoAcesso}
+                  className={`py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    op.dias === null
+                      ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
+                      : 'border-rosa-300 bg-rosa-50 text-rosa-700 hover:bg-rosa-100'
+                  }`}
+                >
+                  {estendendoAcesso ? <Loader2 size={12} className="animate-spin mx-auto" /> : op.label}
+                </button>
+              ))}
             </div>
           </div>
 

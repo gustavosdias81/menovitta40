@@ -5,7 +5,7 @@ import type { Profile, Notificacao } from '../../types'
 import {
   Crown, Users, UserPlus, Search, Bell, BellRing,
   MessageSquare, ChevronRight, Loader2, ArrowLeft, User,
-  Filter, Send, TrendingUp, Activity, WifiOff, Wifi, BookOpen, FlaskConical, DollarSign
+  Filter, Send, TrendingUp, Activity, WifiOff, Wifi, BookOpen, FlaskConical, DollarSign, Clock
 } from 'lucide-react'
 
 const FASE_LABELS: Record<string, string> = {
@@ -24,7 +24,15 @@ const faseBadge = (f: string) => {
 }
 
 type TabKey = 'alunas' | 'stats' | 'vendas' | 'notificacoes'
-type FiltroKey = 'todas' | 'ativas' | 'inativas' | 'quiz'
+type FiltroKey = 'todas' | 'ativas' | 'inativas' | 'quiz' | 'expiradas'
+
+// Helper: retorna dias restantes de acesso (null = permanente, negativo = expirado)
+function diasRestantesAcesso(expira: string | null | undefined): number | null {
+  if (!expira) return null
+  const exp = new Date(expira + 'T23:59:59')
+  const hoje = new Date()
+  return Math.ceil((exp.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -95,6 +103,10 @@ export default function AdminDashboard() {
     if (filtro === 'ativas') return p.ativo !== false && p.quiz_completo
     if (filtro === 'inativas') return p.ativo === false
     if (filtro === 'quiz') return !p.quiz_completo
+    if (filtro === 'expiradas') {
+      const dias = diasRestantesAcesso((p as any).acesso_expira)
+      return dias !== null && dias < 0
+    }
     return true
   })
 
@@ -134,6 +146,7 @@ export default function AdminDashboard() {
     { key: 'ativas', label: 'Ativas' },
     { key: 'inativas', label: 'Inativas' },
     { key: 'quiz', label: 'Quiz pendente' },
+    { key: 'expiradas', label: '⏰ Expiradas' },
   ]
 
   const tipoNotifLabel: Record<string, string> = {
@@ -327,6 +340,25 @@ export default function AdminDashboard() {
                             Quiz pendente
                           </span>
                         )}
+                        {(() => {
+                          const dias = diasRestantesAcesso((aluna as any).acesso_expira)
+                          if (dias === null) return null
+                          if (dias < 0) return (
+                            <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock size={8} /> Expirado
+                            </span>
+                          )
+                          if (dias <= 3) return (
+                            <span className="bg-orange-100 text-orange-600 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock size={8} /> {dias}d restantes
+                            </span>
+                          )
+                          return (
+                            <span className="bg-amber-100 text-amber-600 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock size={8} /> {dias}d
+                            </span>
+                          )
+                        })()}
                         <span className="text-gray-300 text-[10px]">Streak: —</span>
                       </div>
                     </div>

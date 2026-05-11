@@ -1,7 +1,22 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { ArrowLeft, UserPlus, Loader2, Check } from 'lucide-react'
+import { ArrowLeft, UserPlus, Loader2, Check, Clock, Infinity } from 'lucide-react'
+
+// Calcula data de expiração a partir de hoje + dias
+function calcularExpiracao(dias: number | null): string | null {
+  if (!dias) return null
+  const d = new Date()
+  d.setDate(d.getDate() + dias)
+  return d.toISOString().split('T')[0]
+}
+
+const OPCOES_ACESSO = [
+  { dias: 7, label: '7 dias', sublabel: '1 semana', cor: 'border-amber-300 bg-amber-50 text-amber-700' },
+  { dias: 14, label: '14 dias', sublabel: '2 semanas', cor: 'border-orange-300 bg-orange-50 text-orange-700' },
+  { dias: 30, label: '30 dias', sublabel: '1 mês', cor: 'border-rosa-300 bg-rosa-50 text-rosa-700' },
+  { dias: null, label: 'Permanente', sublabel: 'Sem expiração', cor: 'border-green-300 bg-green-50 text-green-700' },
+]
 
 export default function AddUser() {
   const navigate = useNavigate()
@@ -9,17 +24,22 @@ export default function AddUser() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('menovitta2024')
   const [telefone, setTelefone] = useState('')
+  const [diasAcesso, setDiasAcesso] = useState<number | null>(7)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [acessoExpira, setAcessoExpira] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    // Criar usuário via Supabase Admin (ou Auth API)
-    // Nota: Em produção, use uma Edge Function com service_role key
+    const expira = calcularExpiracao(diasAcesso)
+
+    // Criar usuário via Supabase Auth signUp
+    // Nota: O admin continua logado pois o Supabase não faz auto-login no signUp
+    // quando já há uma sessão ativa (comportamento do SDK v2)
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password: senha,
@@ -29,21 +49,33 @@ export default function AddUser() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      setError(signUpError.message === 'User already registered'
+        ? 'Este e-mail já está cadastrado.'
+        : signUpError.message)
       setLoading(false)
       return
     }
 
-    // Atualizar perfil com telefone
+    // Atualizar perfil com dados extras
     if (data.user) {
       await supabase
         .from('profiles')
-        .update({ nome, telefone })
+        .update({ nome, telefone, acesso_expira: expira })
         .eq('user_id', data.user.id)
     }
 
+    setAcessoExpira(expira)
     setLoading(false)
     setSuccess(true)
+  }
+
+  const resetForm = () => {
+    setSuccess(false)
+    setNome('')
+    setEmail('')
+    setTelefone('')
+    setDiasAcesso(7)
+    setAcessoExpira(null)
   }
 
   if (success) {
@@ -56,14 +88,20 @@ export default function AddUser() {
         <p className="text-sm text-gray-500 text-center mb-1">
           <strong>{nome}</strong> foi adicionada com sucesso.
         </p>
-        <p className="text-xs text-gray-400 text-center mb-6">
+        <p className="text-xs text-gray-400 text-center mb-1">
           Email: {email} | Senha: {senha}
         </p>
+        {acessoExpira ? (
+          <p className="text-xs text-amber-600 text-center mb-6">
+            ⏰ Acesso válido até {new Date(acessoExpira + 'T12:00:00').toLocaleDateString('pt-BR')}
+          </p>
+        ) : (
+          <p className="text-xs text-green-600 text-center mb-6">
+            ✅ Acesso permanente
+          </p>
+        )}
         <div className="flex gap-3">
-          <button
-            onClick={() => { setSuccess(false); setNome(''); setEmail(''); setTelefone('') }}
-            className="btn-secondary"
-          >
+          <button onClick={resetForm} className="btn-secondary">
             Cadastrar Outra
           </button>
           <button onClick={() => navigate('/dashboard')} className="btn-primary">
@@ -91,6 +129,7 @@ export default function AddUser() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Dados da aluna */}
         <div className="card">
           <h2 className="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-2">
             <UserPlus size={16} className="text-rosa-500" />
@@ -146,6 +185,46 @@ export default function AddUser() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Período de acesso */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-800 text-sm mb-1 flex items-center gap-2">
+            <Clock size={16} className="text-rosa-500" />
+            Período de Acesso
+          </h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Ideal para desafios e períodos de teste do programa.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            {OPCOES_ACESSO.map(op => (
+              <button
+                key={String(op.dias)}
+                type="button"
+                onClick={() => setDiasAcesso(op.dias)}
+                className={`border-2 rounded-xl p-3 text-center transition-all ${
+                  diasAcesso === op.dias
+                    ? op.cor + ' border-opacity-100 shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-500'
+                }`}
+              >
+                <div className="font-bold text-base">{op.label}</div>
+                <div className="text-[11px] opacity-70">{op.sublabel}</div>
+              </button>
+            ))}
+          </div>
+
+          {diasAcesso && (
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              Acesso expira em:{' '}
+              <strong className="text-gray-600">
+                {new Date(calcularExpiracao(diasAcesso)! + 'T12:00:00').toLocaleDateString('pt-BR', {
+                  day: '2-digit', month: 'long', year: 'numeric'
+                })}
+              </strong>
+            </p>
+          )}
         </div>
 
         {error && (
